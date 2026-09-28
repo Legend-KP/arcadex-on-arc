@@ -2,12 +2,10 @@
   "contract": "ArcadeXTxHub",
   "network": "arc-mainnet",
   "chainId": 5042,
-  "address": "",
-  "usdc": "0x3600000000000000000000000000000000000000",
-  "usdcDecimals": 6,
-  "deployer": "",
-  "deployedAt": null,
-  "txHash": null,
-  "verified": false,
-  "note": "Placeholder \u2014 deploy with contract-deploy scripts on --network arc. Do not use Celo addresses."
+  "address": "0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
+  "owner": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+  "deployer": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+  "deployedAt": "2026-09-28T14:39:52.414Z",
+  "txHash": "0x53d8634305a32196b498468bf2d08f6f8b19207713039f12467bd8f8a1b51304",
+  "notes": "General Arc hub: signIn(purpose) free; payWithUSDC(purpose) after setFee."
 }
