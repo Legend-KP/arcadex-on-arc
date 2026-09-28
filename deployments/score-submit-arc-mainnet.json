@@ -2,13 +2,11 @@
   "contract": "ScoreSubmit",
   "network": "arc-mainnet",
   "chainId": 5042,
-  "address": "",
+  "address": "0x393A322846Cb9b95E9aFC6521e727Cf6C8af8501",
   "usdc": "0x3600000000000000000000000000000000000000",
   "usdcDecimals": 6,
-  "deployer": "",
-  "deployedAt": null,
-  "txHash": null,
-  "verified": false,
-  "note": "Placeholder \u2014 deploy with contract-deploy scripts on --network arc. Do not use Celo addresses.",
-  "fee": "50000"
+  "fee": "50000",
+  "deployer": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+  "deployedAt": "2026-09-28T14:39:47.562Z",
+  "txHash": "0xce24f82f4963e6901220d98e8bdc5a02fba16d01768b55023030f99e482a52ab"
 }

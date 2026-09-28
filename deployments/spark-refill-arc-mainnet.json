@@ -2,13 +2,11 @@
   "contract": "SparkRefill",
   "network": "arc-mainnet",
   "chainId": 5042,
-  "address": "",
+  "address": "0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
   "usdc": "0x3600000000000000000000000000000000000000",
   "usdcDecimals": 6,
-  "deployer": "",
-  "deployedAt": null,
-  "txHash": null,
-  "verified": false,
-  "note": "Placeholder \u2014 deploy with contract-deploy scripts on --network arc. Do not use Celo addresses.",
-  "fee": "50000"
+  "fee": "50000",
+  "deployer": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+  "deployedAt": "2026-09-28T14:39:45.376Z",
+  "txHash": "0x513c5ca6e2bfe0790806d0029f923e310ad9f725c59e5f51c01135a507e546d0"
 }
