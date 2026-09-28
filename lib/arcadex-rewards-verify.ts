@@ -14,9 +14,9 @@ import {
   isArcadeXRewardsConfigured,
 } from "@/lib/arcadex-rewards";
 import {
-  getCeloPublicClient,
-  waitForCeloTransactionReceipt,
-} from "@/lib/celo-public-client";
+  getArcPublicClient,
+  waitForArcTransactionReceipt,
+} from "@/lib/arc-public-client";
 
 export interface VerifiedCheckIn {
   player: Address;
@@ -48,7 +48,7 @@ export async function verifyCheckInTx(
 ): Promise<VerifiedCheckIn> {
   assertConfigured();
   const expectedPlayer = getAddress(walletAddress);
-  const receipt = await waitForCeloTransactionReceipt(txHash, {
+  const receipt = await waitForArcTransactionReceipt(txHash, {
     timeoutMs: 20_000,
   });
 
@@ -186,7 +186,7 @@ export async function readStreakProgress(
 ) {
   assertConfigured();
   const player = getAddress(walletAddress);
-  const publicClient = getCeloPublicClient();
+  const publicClient = getArcPublicClient();
 
   const [progress, campaign] = await Promise.all([
     publicClient.readContract({
@@ -276,7 +276,7 @@ export async function verifySpinTx(
 ): Promise<VerifiedSpin> {
   assertConfigured();
   const expectedPlayer = getAddress(walletAddress);
-  const receipt = await waitForCeloTransactionReceipt(txHash, {
+  const receipt = await waitForArcTransactionReceipt(txHash, {
     timeoutMs: 20_000,
   });
 
@@ -358,7 +358,7 @@ export async function readSpinNonce(
 ): Promise<bigint> {
   assertConfigured();
   const player = getAddress(walletAddress);
-  const publicClient = getCeloPublicClient();
+  const publicClient = getArcPublicClient();
   return publicClient.readContract({
     address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
     abi: ARCADEX_REWARDS_ABI,

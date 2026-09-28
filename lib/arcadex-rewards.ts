@@ -1,10 +1,9 @@
 import type { Address, Hex } from "viem";
 import { keccak256, toBytes } from "viem";
 
-/** ArcadeXRewards on Celo mainnet — daily check-in is app sign-in. */
+/** ArcadeXRewards on Arc mainnet — set after deploy. Daily check-in is app sign-in. */
 export const ARCADEX_REWARDS_CONTRACT_ADDRESS = (
-  process.env.NEXT_PUBLIC_ARCADEX_REWARDS_CONTRACT?.trim() ||
-  "0xc5BE4773D5B4a8e3C6f3E7a4C5f7cfBC38986ccF"
+  process.env.NEXT_PUBLIC_ARCADEX_REWARDS_CONTRACT?.trim() || ""
 ) as Address;
 
 export const DEFAULT_STREAK_CAMPAIGN_ID = Number(

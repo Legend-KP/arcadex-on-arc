@@ -1,7 +1,7 @@
 {
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"main": ".open-next/worker.js",
-	"name": "arcadex-celo",
+	"name": "arcadex-arc",
 	"compatibility_date": "2026-01-01",
 	"compatibility_flags": [
 		"nodejs_compat",
@@ -16,67 +16,68 @@
 		"enabled": true
 	},
 	/**
-	 * Named environments — always deploy with --env preview|production.
-	 * Bindings (KV / D1 / services) are NOT inherited across envs in Wrangler;
-	 * each block must declare its own.
+	 * NEW Arc Worker + D1 — placeholders only.
+	 * Do NOT point these at live arcadex-celo / MiniPay D1 ids.
+	 * Create new Cloudflare Worker names + D1 databases, then fill the ids.
 	 *
 	 * Deploy:
 	 *   npm run deploy:preview
 	 *   npm run deploy:production
-	 *
-	 * PLAYER_DATA_BACKEND=d1 is only set on preview until you create a prod D1
-	 * database, run migrations, then flip production vars to "d1".
 	 */
 	"env": {
 		"preview": {
-			"name": "arcadex-celo-preview",
+			"name": "arcadex-arc-preview",
 			"vars": {
-				"PLAYER_DATA_BACKEND": "d1"
+				"PLAYER_DATA_BACKEND": "d1",
+				"NEXT_PUBLIC_CHAIN_ID": "5042",
+				"NEXT_PUBLIC_ARC_RPC_URL": "https://rpc.mainnet.arc.io"
 			},
 			"services": [
 				{
 					"binding": "WORKER_SELF_REFERENCE",
-					"service": "arcadex-celo-preview"
+					"service": "arcadex-arc-preview"
 				}
 			],
 			"kv_namespaces": [
 				{
 					"binding": "RATE_LIMIT_KV",
-					"id": "afc93dfed6514875924b2511a39412cb"
+					"id": "REPLACE_WITH_NEW_ARC_PREVIEW_KV_ID"
 				}
 			],
 			"d1_databases": [
 				{
 					"binding": "DB",
-					"database_name": "arcadex-celo-preview",
-					"database_id": "81f8cd4f-6927-4561-861b-e5aa12eba7a6",
+					"database_name": "arcadex-arc-preview",
+					"database_id": "REPLACE_WITH_NEW_ARC_PREVIEW_D1_ID",
 					"migrations_dir": "migrations",
-					"preview_database_id": "arcadex-celo-preview-local"
+					"preview_database_id": "arcadex-arc-preview-local"
 				}
 			]
 		},
 		"production": {
-			"name": "arcadex-celo",
+			"name": "arcadex-arc",
 			"vars": {
-				"PLAYER_DATA_BACKEND": "d1"
+				"PLAYER_DATA_BACKEND": "d1",
+				"NEXT_PUBLIC_CHAIN_ID": "5042",
+				"NEXT_PUBLIC_ARC_RPC_URL": "https://rpc.mainnet.arc.io"
 			},
 			"services": [
 				{
 					"binding": "WORKER_SELF_REFERENCE",
-					"service": "arcadex-celo"
+					"service": "arcadex-arc"
 				}
 			],
 			"kv_namespaces": [
 				{
 					"binding": "RATE_LIMIT_KV",
-					"id": "55bfb54188784fac966da56f42c9fce6"
+					"id": "REPLACE_WITH_NEW_ARC_PROD_KV_ID"
 				}
 			],
 			"d1_databases": [
 				{
 					"binding": "DB",
-					"database_name": "arcadex-celo-prod",
-					"database_id": "71aee228-0f98-412f-a5eb-6119c39cb5c3",
+					"database_name": "arcadex-arc-prod",
+					"database_id": "REPLACE_WITH_NEW_ARC_PROD_D1_ID",
 					"migrations_dir": "migrations"
 				}
 			]

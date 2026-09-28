@@ -4,10 +4,10 @@ const https = require("https");
 
 const DEPLOYMENT_FILE = path.resolve(
   __dirname,
-  "../../deployments/arcadex-tx-hub-celo-mainnet.json"
+  "../../deployments/arcadex-tx-hub-arc-mainnet.json"
 );
 const CONTRACT_IDENTIFIER = "contracts/ArcadeXTxHub.sol:ArcadeXTxHub";
-const CHAIN_ID = 42220;
+const CHAIN_ID = 5042;
 
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
@@ -158,7 +158,7 @@ async function verifyOnSourcify(address, txHash) {
   throw new Error("Sourcify verification timed out");
 }
 
-async function verifyOnCeloscan(address) {
+async function verifyOnArc Explorer(address) {
   if (!apiKey) {
     return false;
   }
@@ -189,12 +189,12 @@ async function verifyOnCeloscan(address) {
 
   if (submit.status !== "1") {
     throw new Error(
-      `Celoscan submit failed: ${submit.message || JSON.stringify(submit)}`
+      `Arc Explorer submit failed: ${submit.message || JSON.stringify(submit)}`
     );
   }
 
   const guid = submit.result;
-  console.log("Celoscan GUID:", guid);
+  console.log("Arc Explorer GUID:", guid);
 
   for (let i = 0; i < 20; i++) {
     await sleep(5000);
@@ -209,12 +209,12 @@ async function verifyOnCeloscan(address) {
         }).toString()
     );
 
-    console.log("Celoscan status:", status.result || status.message);
+    console.log("Arc Explorer status:", status.result || status.message);
 
     if (status.status === "1") {
       console.log(
-        "Verified on Celoscan:",
-        `https://celoscan.io/address/${address}#code`
+        "Verified on Arc Explorer:",
+        `https://arc-explorer.io/address/${address}#code`
       );
       return true;
     }
@@ -228,10 +228,10 @@ async function verifyOnCeloscan(address) {
     }
   }
 
-  throw new Error("Celoscan verification timed out");
+  throw new Error("Arc Explorer verification timed out");
 }
 
-async function checkCeloscanVerified(address) {
+async function checkArc ExplorerVerified(address) {
   const res = await getJson(
     `https://api.etherscan.io/v2/api?` +
       new URLSearchParams({
@@ -250,13 +250,13 @@ async function checkCeloscanVerified(address) {
   );
 }
 
-function saveVerification(deployment, celoscanUrl) {
+function saveVerification(deployment, arc-explorerUrl) {
   const updated = {
     ...deployment,
     verified: true,
     verifiedAt: new Date().toISOString(),
     verification: {
-      celoscan: celoscanUrl,
+      arc-explorer: arc-explorerUrl,
       sourcify: `https://sourcify.dev/#/lookup/${CHAIN_ID}/${deployment.address}`,
     },
   };
@@ -273,34 +273,34 @@ async function main() {
 
   console.log("Verifying ArcadeXTxHub at", address);
 
-  if (await checkCeloscanVerified(address)) {
-    const celoscanUrl = `https://celoscan.io/address/${address}#code`;
-    console.log("Already verified on Celoscan:", celoscanUrl);
-    saveVerification(deployment, celoscanUrl);
+  if (await checkArc ExplorerVerified(address)) {
+    const arc-explorerUrl = `https://arc-explorer.io/address/${address}#code`;
+    console.log("Already verified on Arc Explorer:", arc-explorerUrl);
+    saveVerification(deployment, arc-explorerUrl);
     return;
   }
 
-  let celoscanOk = false;
+  let arc-explorerOk = false;
   if (apiKey) {
-    celoscanOk = await verifyOnCeloscan(address);
+    arc-explorerOk = await verifyOnArc Explorer(address);
   } else {
     console.log(
-      "No ETHERSCAN_API_KEY — trying Sourcify, then Celoscan manual step."
+      "No ETHERSCAN_API_KEY — trying Sourcify, then Arc Explorer manual step."
     );
   }
 
-  if (!celoscanOk) {
+  if (!arc-explorerOk) {
     await verifyOnSourcify(address, txHash);
   }
 
-  const celoscanUrl = `https://celoscan.io/address/${address}#code`;
-  saveVerification(deployment, celoscanUrl);
+  const arc-explorerUrl = `https://arc-explorer.io/address/${address}#code`;
+  saveVerification(deployment, arc-explorerUrl);
 
   if (!apiKey) {
     console.log("");
     console.log("Sourcify verification complete.");
     console.log(
-      "For Celoscan (required for MiniPay), add ETHERSCAN_API_KEY to .env and run:"
+      "For Arc Explorer (recommended for explorers), add ETHERSCAN_API_KEY to .env and run:"
     );
     console.log("  cd contract-deploy && npm run verify:arcadex-tx-hub");
     console.log("Get a free key at https://etherscan.io/myapikey");

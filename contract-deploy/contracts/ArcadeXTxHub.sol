@@ -3,15 +3,14 @@ pragma solidity ^0.8.20;
 
 /**
  * @title ArcadeXTxHub
- * @notice General MiniPay transaction surface for ArcadeX on Celo Mainnet.
- * @dev Free `signIn(purpose)` for activity txs (e.g. play) plus USDT/USDC
- *      `payWith*(purpose)` for future paid flows. Fees are owner-configurable
- *      per purpose so new product uses do not require redeploy / MiniPay re-whitelist.
- *      Ship all entrypoints in v1 — new Solidity functions later need a new allowlist.
+ * @notice General transaction surface for ArcadeX on Arc Mainnet.
+ * @dev Free `signIn(purpose)` for activity txs (e.g. play) plus USDC
+ *      `payWithUSDC(purpose)` for paid flows. Fees are owner-configurable
+ *      per purpose so new product uses do not require redeploy.
  */
 contract ArcadeXTxHub {
-    address public constant USDT = 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e;
-    address public constant USDC = 0xcebA9300f2b948710d2653dD7B07f33A8B32118C;
+    /// @notice Arc mainnet ERC-20 USDC (6 decimals).
+    address public constant USDC = 0x3600000000000000000000000000000000000000;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
@@ -21,17 +20,14 @@ contract ArcadeXTxHub {
     address public pendingOwner;
     bool public paused;
 
-    /// @notice Per-purpose fee in token smallest units (USDT/USDC use 6 decimals).
+    /// @notice Per-purpose fee in USDC smallest units (6 decimals).
     mapping(bytes32 => uint256) public feeOf;
     /// @notice True after owner calls setFee for that purpose (paid paths require this).
     mapping(bytes32 => bool) public feeConfigured;
 
-    uint256 public totalCollectedUSDT;
     uint256 public totalCollectedUSDC;
-    uint256 public totalWithdrawnUSDT;
     uint256 public totalWithdrawnUSDC;
 
-    mapping(address => uint256) public payCountUSDT;
     mapping(address => uint256) public payCountUSDC;
     mapping(address => uint256) public signInCount;
 
@@ -44,7 +40,6 @@ contract ArcadeXTxHub {
         uint256 timestamp
     );
     event FeeUpdated(bytes32 indexed purpose, uint256 oldFee, uint256 newFee);
-    event WithdrawnUSDT(address indexed to, uint256 amount);
     event WithdrawnUSDC(address indexed to, uint256 amount);
     event Paused(address indexed by);
     event Unpaused(address indexed by);
@@ -63,7 +58,7 @@ contract ArcadeXTxHub {
     error Reentrancy();
     error TransferFailed();
     error TransferAmountMismatch();
-    error NoCelo();
+    error NoNativeValue();
 
     modifier nonReentrant() {
         if (_status == _ENTERED) revert Reentrancy();
@@ -95,19 +90,6 @@ contract ArcadeXTxHub {
         emit SignedIn(msg.sender, purpose, block.timestamp);
     }
 
-    function payWithUSDT(bytes32 purpose) external nonReentrant whenNotPaused {
-        if (!feeConfigured[purpose]) revert PurposeNotConfigured();
-        uint256 amount = feeOf[purpose];
-
-        unchecked {
-            payCountUSDT[msg.sender] += 1;
-            totalCollectedUSDT += amount;
-        }
-
-        _collectPayment(USDT, msg.sender, amount);
-        emit EntryPaid(msg.sender, USDT, purpose, amount, block.timestamp);
-    }
-
     function payWithUSDC(bytes32 purpose) external nonReentrant whenNotPaused {
         if (!feeConfigured[purpose]) revert PurposeNotConfigured();
         uint256 amount = feeOf[purpose];
@@ -121,20 +103,12 @@ contract ArcadeXTxHub {
         emit EntryPaid(msg.sender, USDC, purpose, amount, block.timestamp);
     }
 
-    /// @notice Configure (or update) the paid fee for a purpose. Enables payWith* for that purpose.
+    /// @notice Configure (or update) the paid fee for a purpose. Enables payWithUSDC for that purpose.
     function setFee(bytes32 purpose, uint256 newFee) external onlyOwner {
         uint256 oldFee = feeOf[purpose];
         feeOf[purpose] = newFee;
         feeConfigured[purpose] = true;
         emit FeeUpdated(purpose, oldFee, newFee);
-    }
-
-    function withdrawUSDT() external onlyOwner nonReentrant {
-        uint256 bal = _balanceOf(USDT, address(this));
-        if (bal == 0) revert NoBalance();
-        totalWithdrawnUSDT += bal;
-        _safeTransfer(USDT, owner, bal);
-        emit WithdrawnUSDT(owner, bal);
     }
 
     function withdrawUSDC() external onlyOwner nonReentrant {
@@ -159,7 +133,7 @@ contract ArcadeXTxHub {
 
     function transferOwnership(address newOwner) external onlyOwner {
         if (newOwner == address(0)) revert ZeroAddress();
-        if (newOwner == USDT || newOwner == USDC || newOwner == address(this)) {
+        if (newOwner == USDC || newOwner == address(this)) {
             revert InvalidOwner();
         }
         pendingOwner = newOwner;
@@ -173,10 +147,6 @@ contract ArcadeXTxHub {
         pendingOwner = address(0);
     }
 
-    function getBalanceUSDT() external view returns (uint256) {
-        return _balanceOf(USDT, address(this));
-    }
-
     function getBalanceUSDC() external view returns (uint256) {
         return _balanceOf(USDC, address(this));
     }
@@ -185,24 +155,18 @@ contract ArcadeXTxHub {
         external
         view
         returns (
-            uint256 currentUSDT,
             uint256 currentUSDC,
-            uint256 lifetimeUSDT,
             uint256 lifetimeUSDC,
-            uint256 withdrawnUSDT,
             uint256 withdrawnUSDC
         )
     {
-        currentUSDT = _balanceOf(USDT, address(this));
         currentUSDC = _balanceOf(USDC, address(this));
-        lifetimeUSDT = totalCollectedUSDT;
         lifetimeUSDC = totalCollectedUSDC;
-        withdrawnUSDT = totalWithdrawnUSDT;
         withdrawnUSDC = totalWithdrawnUSDC;
     }
 
     function getPayCount(address player) external view returns (uint256) {
-        return payCountUSDT[player] + payCountUSDC[player];
+        return payCountUSDC[player];
     }
 
     function _collectPayment(address token, address player, uint256 amount) internal {
@@ -243,10 +207,10 @@ contract ArcadeXTxHub {
     }
 
     receive() external payable {
-        revert NoCelo();
+        revert NoNativeValue();
     }
 
     fallback() external payable {
-        revert NoCelo();
+        revert NoNativeValue();
     }
 }

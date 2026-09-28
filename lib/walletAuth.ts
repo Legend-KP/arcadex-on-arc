@@ -1,10 +1,10 @@
 "use client";
 
 import {
-  createMiniPayWalletClient,
+  createInjectedWalletClient,
   getInjectedProvider,
-  isMiniPay,
-} from "@/lib/minipay";
+  hasInjectedWallet,
+} from "@/lib/wallet";
 import {
   isWalletAddress,
   normalizeWalletAddress,
@@ -40,7 +40,7 @@ function cacheWallet(address: string): string {
 }
 
 async function readAddressFromProvider(): Promise<string | null> {
-  const client = createMiniPayWalletClient();
+  const client = createInjectedWalletClient();
   if (!client) return null;
 
   try {
@@ -91,7 +91,7 @@ async function waitForProviderWallet(
   return readAddressFromProvider();
 }
 
-/** Resolve wallet on app open via MiniPay injected provider (no message signing). */
+/** Resolve wallet on app open via injected provider (no message signing). */
 export async function resolveWalletOnAppOpen(): Promise<string | null> {
   clearInvalidCachedWallet();
 
@@ -120,10 +120,10 @@ export async function retryResolveWallet(): Promise<string | null> {
 }
 
 function walletInitErrorMessage(): string {
-  if (!isMiniPay()) {
-    return "Open ArcadeX inside MiniPay to continue.";
+  if (!hasInjectedWallet()) {
+    return "Connect a wallet (MetaMask, Coinbase Wallet, or Rabby) on Arc to continue.";
   }
-  return "Could not connect to your MiniPay wallet. Update MiniPay and try again.";
+  return "Could not connect to your wallet. Unlock it and try again.";
 }
 
 /** Resolve wallet for saving profile — requires signed session. */
@@ -143,7 +143,7 @@ export async function resolveWalletForSave(): Promise<string> {
  */
 export async function establishWalletSession(wallet: string): Promise<string> {
   const normalized = normalizeWalletAddress(wallet);
-  const client = createMiniPayWalletClient();
+  const client = createInjectedWalletClient();
   if (!client) {
     throw new Error(walletInitErrorMessage());
   }
@@ -206,7 +206,7 @@ export async function ensureWalletSession(wallet: string): Promise<string> {
     throw new Error(
       err instanceof Error
         ? err.message
-        : "Could not authenticate your wallet. Open ArcadeX in MiniPay and try again."
+        : "Could not authenticate your wallet. Connect on Arc and try again."
     );
   }
 }

@@ -1,0 +1,14 @@
+{
+  "contract": "InfiniteSpark",
+  "network": "arc-mainnet",
+  "chainId": 5042,
+  "address": "",
+  "usdc": "0x3600000000000000000000000000000000000000",
+  "usdcDecimals": 6,
+  "deployer": "",
+  "deployedAt": null,
+  "txHash": null,
+  "verified": false,
+  "note": "Placeholder \u2014 deploy with contract-deploy scripts on --network arc. Do not use Celo addresses.",
+  "fee": "100000"
+}

@@ -22,7 +22,7 @@ import {
   loadPrimaryGameMenuImage,
   preloadGameMenuAssets,
 } from "@/lib/game-assets";
-import { formatChainError } from "@/lib/celo-public-client";
+import { formatChainError } from "@/lib/arc-public-client";
 import {
   isArcadeXTxHubConfigured,
   playPurpose,
@@ -202,7 +202,7 @@ export default function GamePageClient() {
     setSparkError("");
 
     if (!walletAddress) {
-      setSparkError("Connect your wallet in MiniPay to play.");
+      setSparkError("Connect your wallet in wallet to play.");
       return;
     }
 

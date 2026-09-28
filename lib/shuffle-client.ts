@@ -109,7 +109,7 @@ export async function syncShuffleSpin(opts: {
 }
 
 /**
- * Primary MiniPay sign-in when NEXT_PUBLIC_DAILY_PLAY_MODE=shuffle:
+ * Primary wallet sign-in when NEXT_PUBLIC_DAILY_PLAY_MODE=shuffle:
  * prepare → spin() → sync JWT (+ optional Infinite Spark).
  */
 export async function performDailyShuffle(

@@ -8,7 +8,7 @@ async function main() {
   console.log("Deploying SparkRefill with account:", deployer.address);
 
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", hre.ethers.formatEther(balance), "CELO");
+  console.log("Account balance:", hre.ethers.formatEther(balance), "USDC");
 
   const SparkRefill = await hre.ethers.getContractFactory("SparkRefill");
   const contract = await SparkRefill.deploy();
@@ -25,8 +25,8 @@ async function main() {
 
   const deployment = {
     contract: "SparkRefill",
-    network: "celo-mainnet",
-    chainId: 42220,
+    network: "arc-mainnet",
+    chainId: 5042,
     address,
     fee: fee.toString(),
     deployer: deployer.address,
@@ -35,11 +35,11 @@ async function main() {
   };
 
   writeFileSync(
-    join(outDir, "spark-refill-celo-mainnet.json"),
+    join(outDir, "spark-refill-arc-mainnet.json"),
     JSON.stringify(deployment, null, 2)
   );
 
-  console.log("Deployment saved to deployments/spark-refill-celo-mainnet.json");
+  console.log("Deployment saved to deployments/spark-refill-arc-mainnet.json");
 }
 
 main().catch((error) => {

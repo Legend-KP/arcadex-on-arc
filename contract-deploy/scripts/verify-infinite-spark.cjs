@@ -3,7 +3,7 @@ const path = require("path");
 const https = require("https");
 
 const ADDRESS = "0x2a9f38b41035a900d5038D1972955011fb3278E7";
-const CHAIN_ID = 42220;
+const CHAIN_ID = 5042;
 const TX_HASH =
   "0x7a9f03c05425a05f12025849574f27f9f78140e16b99a48d1abd187a173691c8";
 const BUILD_INFO = path.resolve(
@@ -132,7 +132,7 @@ async function verifyOnSourcify() {
   throw new Error("Sourcify verification timed out");
 }
 
-async function verifyOnCeloscan() {
+async function verifyOnArc Explorer() {
   if (!apiKey) {
     return false;
   }
@@ -163,12 +163,12 @@ async function verifyOnCeloscan() {
 
   if (submit.status !== "1") {
     throw new Error(
-      `Celoscan submit failed: ${submit.message || JSON.stringify(submit)}`
+      `Arc Explorer submit failed: ${submit.message || JSON.stringify(submit)}`
     );
   }
 
   const guid = submit.result;
-  console.log("Celoscan GUID:", guid);
+  console.log("Arc Explorer GUID:", guid);
 
   for (let i = 0; i < 20; i++) {
     await sleep(5000);
@@ -183,12 +183,12 @@ async function verifyOnCeloscan() {
         }).toString()
     );
 
-    console.log("Celoscan status:", status.result || status.message);
+    console.log("Arc Explorer status:", status.result || status.message);
 
     if (status.status === "1") {
       console.log(
-        "Verified on Celoscan:",
-        `https://celoscan.io/address/${ADDRESS}#code`
+        "Verified on Arc Explorer:",
+        `https://arc-explorer.io/address/${ADDRESS}#code`
       );
       return true;
     }
@@ -202,10 +202,10 @@ async function verifyOnCeloscan() {
     }
   }
 
-  throw new Error("Celoscan verification timed out");
+  throw new Error("Arc Explorer verification timed out");
 }
 
-async function checkCeloscanVerified() {
+async function checkArc ExplorerVerified() {
   const res = await getJson(
     `https://api.etherscan.io/v2/api?` +
       new URLSearchParams({
@@ -221,16 +221,16 @@ async function checkCeloscanVerified() {
 }
 
 async function main() {
-  if (await checkCeloscanVerified()) {
-    console.log("Already verified on Celoscan:", `https://celoscan.io/address/${ADDRESS}#code`);
+  if (await checkArc ExplorerVerified()) {
+    console.log("Already verified on Arc Explorer:", `https://arc-explorer.io/address/${ADDRESS}#code`);
     return;
   }
 
   if (apiKey) {
-    const celoscanOk = await verifyOnCeloscan();
-    if (celoscanOk) return;
+    const arc-explorerOk = await verifyOnArc Explorer();
+    if (arc-explorerOk) return;
   } else {
-    console.log("No ETHERSCAN_API_KEY — trying Sourcify, then Celoscan manual step.");
+    console.log("No ETHERSCAN_API_KEY — trying Sourcify, then Arc Explorer manual step.");
   }
 
   await verifyOnSourcify();
@@ -239,7 +239,7 @@ async function main() {
     console.log("");
     console.log("Sourcify verification complete.");
     console.log(
-      "For Celoscan (required for MiniPay), add ETHERSCAN_API_KEY to .env and run:"
+      "For Arc Explorer (recommended for explorers), add ETHERSCAN_API_KEY to .env and run:"
     );
     console.log("  cd contract-deploy && npm run verify");
     console.log("Get a free key at https://etherscan.io/myapikey");

@@ -1,23 +1,15 @@
-import { toDataSuffix } from "@celo/attribution-tags";
-import { concat, type Hex } from "viem";
+import type { Hex } from "viem";
 
 /**
- * ArcadeX MiniPay attribution code (opaque token for Celo).
- * Override at build time with NEXT_PUBLIC_CELO_ATTRIBUTION_CODE when set.
+ * Celo MiniPay attribution tags are not used on Arc.
+ * Kept as no-ops so call sites that append a data suffix stay compile-clean.
  */
-const APP_ATTRIBUTION_CODE =
-  process.env.NEXT_PUBLIC_CELO_ATTRIBUTION_CODE?.trim() || "celo_9ycuxgyv";
-
-let cachedSuffix: Hex | null = null;
 
 export function getAttributionSuffix(): Hex {
-  if (!cachedSuffix) {
-    cachedSuffix = toDataSuffix(APP_ATTRIBUTION_CODE) as Hex;
-  }
-  return cachedSuffix;
+  return "0x";
 }
 
-/** Append attribution bytes for raw eth_sendTransaction calldata. */
+/** Identity on Arc — no Celo attribution bytes appended. */
 export function appendAttributionSuffix(data: Hex): Hex {
-  return concat([data, getAttributionSuffix()]);
+  return data;
 }

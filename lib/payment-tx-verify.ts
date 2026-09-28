@@ -7,10 +7,10 @@ import {
   type TransactionReceipt,
 } from "viem";
 import {
-  getCeloPublicClient,
-  resetCeloPublicClient,
+  getArcPublicClient,
+  resetArcPublicClient,
   isBlockOutOfRangeError,
-} from "@/lib/celo-public-client";
+} from "@/lib/arc-public-client";
 
 const RECEIPT_RETRY_DELAYS_MS = [0, 500, 1200, 2500];
 
@@ -53,7 +53,7 @@ function isTransientReceiptError(error: unknown): boolean {
   );
 }
 
-/** Fetch a receipt with retries and RPC rotation — critical right after MiniPay confirms. */
+/** Fetch a receipt with retries and RPC rotation — critical right after wallet confirms. */
 export async function getPaymentTransactionReceipt(
   txHash: Hash
 ): Promise<TransactionReceipt> {
@@ -64,11 +64,11 @@ export async function getPaymentTransactionReceipt(
       await new Promise((resolve) =>
         setTimeout(resolve, RECEIPT_RETRY_DELAYS_MS[attempt])
       );
-      resetCeloPublicClient();
+      resetArcPublicClient();
     }
 
     try {
-      const receipt = await getCeloPublicClient().getTransactionReceipt({
+      const receipt = await getArcPublicClient().getTransactionReceipt({
         hash: txHash,
       });
       if (receipt) return receipt;
@@ -83,7 +83,7 @@ export async function getPaymentTransactionReceipt(
     : new Error("Could not load payment transaction receipt.");
 }
 
-export type StablePaymentToken = "USDT" | "USDC";
+export type StablePaymentToken = "USDC";
 
 export interface VerifiedStablePayment {
   player: Address;
@@ -97,7 +97,7 @@ async function readLatestContractValue<T>(
   functionName: "fee" | "paused"
 ): Promise<T> {
   try {
-    return (await getCeloPublicClient().readContract({
+    return (await getArcPublicClient().readContract({
       address: contractAddress,
       abi,
       functionName,
@@ -105,8 +105,8 @@ async function readLatestContractValue<T>(
     })) as T;
   } catch (error) {
     if (isBlockOutOfRangeError(error) || isTransientReceiptError(error)) {
-      resetCeloPublicClient();
-      return (await getCeloPublicClient().readContract({
+      resetArcPublicClient();
+      return (await getArcPublicClient().readContract({
         address: contractAddress,
         abi,
         functionName,
@@ -123,9 +123,15 @@ function tokenFromAddress(
   usdcAddress: Address
 ): StablePaymentToken {
   const tokenLower = token.toLowerCase();
-  if (tokenLower === usdtAddress.toLowerCase()) return "USDT";
   if (tokenLower === usdcAddress.toLowerCase()) return "USDC";
-  throw new Error("Payment token is not USDT or USDC.");
+  // USDT address is zero on Arc; ignore any accidental match.
+  if (
+    usdtAddress !== "0x0000000000000000000000000000000000000000" &&
+    tokenLower === usdtAddress.toLowerCase()
+  ) {
+    throw new Error("USDT is not supported on Arc. Pay with USDC.");
+  }
+  throw new Error("Payment token is not Arc USDC.");
 }
 
 function verifyDirectTransferPayment(options: {
@@ -196,7 +202,7 @@ function verifyDirectTransferPayment(options: {
     throw new Error("Payment amount is below the contract fee.");
   }
 
-  // Prefer Transfer(from=player) over receipt.from — CIP-64 fee txs can look odd on some RPCs.
+  // Prefer Transfer(from=player) over receipt.from.
   if (getAddress(receipt.from) !== expectedPlayer) {
     throw new Error("Payment wallet does not match your account.");
   }
@@ -274,7 +280,7 @@ function verifyEntryPaidEvent(options: {
 }
 
 /**
- * Verify a MiniPay payment to a SparkRefill-style contract.
+ * Verify a wallet payment to a SparkRefill-style contract.
  * Accepts a direct ERC-20 transfer into the contract (current flow) or a
  * legacy payWith* tx that emitted EntryPaid.
  */

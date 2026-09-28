@@ -8,7 +8,7 @@ async function main() {
   console.log("Deploying InfiniteSpark with account:", deployer.address);
 
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", hre.ethers.formatEther(balance), "CELO");
+  console.log("Account balance:", hre.ethers.formatEther(balance), "USDC");
 
   const InfiniteSpark = await hre.ethers.getContractFactory("InfiniteSpark");
   const contract = await InfiniteSpark.deploy();
@@ -25,8 +25,8 @@ async function main() {
 
   const deployment = {
     contract: "InfiniteSpark",
-    network: "celo-mainnet",
-    chainId: 42220,
+    network: "arc-mainnet",
+    chainId: 5042,
     address,
     fee: fee.toString(),
     deployer: deployer.address,
@@ -35,11 +35,11 @@ async function main() {
   };
 
   writeFileSync(
-    join(outDir, "infinite-spark-celo-mainnet.json"),
+    join(outDir, "infinite-spark-arc-mainnet.json"),
     JSON.stringify(deployment, null, 2)
   );
 
-  console.log("Deployment saved to deployments/infinite-spark-celo-mainnet.json");
+  console.log("Deployment saved to deployments/infinite-spark-arc-mainnet.json");
 }
 
 main().catch((error) => {

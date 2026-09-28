@@ -1,14 +1,12 @@
 import type { Address, Hash, Hex } from "viem";
 import { keccak256, toBytes } from "viem";
-import { celo } from "viem/chains";
-import { getAttributionSuffix } from "@/lib/attribution";
-import { waitForCeloTransactionReceipt } from "@/lib/celo-public-client";
-import { createMiniPayWalletClient } from "@/lib/minipay";
+import { arcChain } from "@/lib/arc-chain";
+import { waitForArcTransactionReceipt } from "@/lib/arc-public-client";
+import { createInjectedWalletClient } from "@/lib/wallet";
 
-/** ArcadeXTxHub on Celo mainnet — general free signIn + USDT/USDC pay purposes. */
+/** ArcadeXTxHub on Arc mainnet — set after deploy. Free signIn + USDC pay purposes. */
 export const ARCADEX_TX_HUB_CONTRACT_ADDRESS = (
-  process.env.NEXT_PUBLIC_ARCADEX_TX_HUB_CONTRACT?.trim() ||
-  "0x7D0fc71785B25d7878f83c4bf0E125DD89470FEc"
+  process.env.NEXT_PUBLIC_ARCADEX_TX_HUB_CONTRACT?.trim() || ""
 ) as Address;
 
 export const PLAY_PURPOSE = keccak256(toBytes("PLAY"));
@@ -17,7 +15,7 @@ export function purposeFromLabel(label: string): Hex {
   return keccak256(toBytes(label));
 }
 
-/** Per-game play purpose for Celoscan readability (still signIn). */
+/** Per-game play purpose for explorer readability (still signIn). */
 export function playPurpose(gameId: string): Hex {
   return keccak256(toBytes(`PLAY:${gameId}`));
 }
@@ -375,7 +373,7 @@ export const ARCADEX_TX_HUB_ABI = [
 ] as const;
 
 /**
- * MiniPay write of ArcadeXTxHub.signIn — gas-only activity tx (e.g. Start Game).
+ * Wallet write of ArcadeXTxHub.signIn — gas-only activity tx (e.g. Start Game).
  * No backend sync; receipt wait is best-effort like streak check-in.
  */
 export async function signInOnChain(purpose: Hex): Promise<{ txHash: Hash }> {
@@ -383,9 +381,9 @@ export async function signInOnChain(purpose: Hex): Promise<{ txHash: Hash }> {
     throw new Error("ArcadeXTxHub is not configured yet.");
   }
 
-  const walletClient = createMiniPayWalletClient();
+  const walletClient = createInjectedWalletClient();
   if (!walletClient) {
-    throw new Error("Open ArcadeX inside MiniPay to continue.");
+    throw new Error("Connect a wallet to continue.");
   }
 
   const [account] = await walletClient.getAddresses();
@@ -395,16 +393,15 @@ export async function signInOnChain(purpose: Hex): Promise<{ txHash: Hash }> {
 
   const hash = await walletClient.writeContract({
     account,
-    chain: celo,
+    chain: arcChain,
     address: ARCADEX_TX_HUB_CONTRACT_ADDRESS,
     abi: ARCADEX_TX_HUB_ABI,
     functionName: "signIn",
     args: [purpose],
-    dataSuffix: getAttributionSuffix(),
   });
 
   try {
-    const receipt = await waitForCeloTransactionReceipt(hash);
+    const receipt = await waitForArcTransactionReceipt(hash);
     if (receipt.status !== "success") {
       throw new Error("Sign-in transaction failed.");
     }

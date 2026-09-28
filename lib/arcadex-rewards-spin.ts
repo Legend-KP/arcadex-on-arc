@@ -1,20 +1,19 @@
 "use client";
 
 import type { Address, Hash, Hex } from "viem";
-import { celo } from "viem/chains";
-import { getAttributionSuffix } from "@/lib/attribution";
+import { arcChain } from "@/lib/arc-chain";
 import {
   formatChainError,
-  getCeloPublicClient,
-  waitForCeloTransactionReceipt,
-} from "@/lib/celo-public-client";
+  getArcPublicClient,
+  waitForArcTransactionReceipt,
+} from "@/lib/arc-public-client";
 import {
   ARCADEX_REWARDS_ABI,
   ARCADEX_REWARDS_CONTRACT_ADDRESS,
   isArcadeXRewardsConfigured,
 } from "@/lib/arcadex-rewards";
 import { DEFAULT_SHUFFLE_CAMPAIGN_ID } from "@/lib/daily-play-mode";
-import { createMiniPayWalletClient } from "@/lib/minipay";
+import { createInjectedWalletClient } from "@/lib/wallet";
 
 export async function spinOnChain(opts: {
   campaignId?: number;
@@ -29,9 +28,9 @@ export async function spinOnChain(opts: {
     throw new Error("ArcadeXRewards is not configured yet.");
   }
 
-  const walletClient = createMiniPayWalletClient();
+  const walletClient = createInjectedWalletClient();
   if (!walletClient) {
-    throw new Error("Open ArcadeX inside MiniPay to shuffle.");
+    throw new Error("Open ArcadeX inside wallet to shuffle.");
   }
 
   const [account] = await walletClient.getAddresses();
@@ -51,7 +50,7 @@ export async function spinOnChain(opts: {
   ] as const;
 
   try {
-    await getCeloPublicClient().simulateContract({
+    await getArcPublicClient().simulateContract({
       account,
       address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
       abi: ARCADEX_REWARDS_ABI,
@@ -64,16 +63,15 @@ export async function spinOnChain(opts: {
 
   const hash = await walletClient.writeContract({
     account,
-    chain: celo,
+    chain: arcChain,
     address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
     abi: ARCADEX_REWARDS_ABI,
     functionName: "spin",
     args,
-    dataSuffix: getAttributionSuffix(),
-  });
+      });
 
   try {
-    const receipt = await waitForCeloTransactionReceipt(hash);
+    const receipt = await waitForArcTransactionReceipt(hash);
     if (receipt.status !== "success") {
       throw new Error("Shuffle transaction failed.");
     }
@@ -97,9 +95,9 @@ export async function claimShuffleRewardOnChain(
     throw new Error("ArcadeXRewards is not configured yet.");
   }
 
-  const walletClient = createMiniPayWalletClient();
+  const walletClient = createInjectedWalletClient();
   if (!walletClient) {
-    throw new Error("Open ArcadeX inside MiniPay to claim.");
+    throw new Error("Open ArcadeX inside wallet to claim.");
   }
 
   const [account] = await walletClient.getAddresses();
@@ -109,15 +107,14 @@ export async function claimShuffleRewardOnChain(
 
   const hash = await walletClient.writeContract({
     account,
-    chain: celo,
+    chain: arcChain,
     address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
     abi: ARCADEX_REWARDS_ABI,
     functionName: "claim",
     args: [BigInt(campaignId)],
-    dataSuffix: getAttributionSuffix(),
-  });
+      });
 
-  const receipt = await waitForCeloTransactionReceipt(hash);
+  const receipt = await waitForArcTransactionReceipt(hash);
   if (receipt.status !== "success") {
     throw new Error("Claim transaction failed.");
   }

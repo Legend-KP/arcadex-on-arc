@@ -15,13 +15,13 @@ interface IMintable {
 
 /**
  * @title ArcadeXRewards
- * @notice MiniPay hub: STREAK daily check-in + SHUFFLE signed spins + shared claim path.
+ * @notice ArcadeX hub: STREAK daily check-in + SHUFFLE signed spins + shared claim path on Arc.
  *
  * @dev Hardened for safe deployment:
  *      - Interval enforcement after first-ever check-in/spin (no post-reset bypass)
  *      - Campaign core params freeze after first participant
  *      - startTime / endTime windows
- *      - Treasury reservation for USDT/USDC (fixed streak or per-spin won amount)
+ *      - Treasury reservation for USDC (fixed streak or per-spin won amount). USDT mode retained but unavailable on Arc.
  *      - cancelCampaign keeps claim() open for earners
  *      - Optional EIP-712 eligibility (Sybil gate) separate from spin-result signatures
  *      - maxClaims enforced at reward reservation time
@@ -41,8 +41,10 @@ contract ArcadeXRewards is ReentrancyGuard, EIP712, IERC721Receiver {
         SHUFFLE
     }
 
-    address public constant USDT = 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e;
-    address public constant USDC = 0xcebA9300f2b948710d2653dD7B07f33A8B32118C;
+    /// @dev No USDT on Arc mainnet — zero address so USDT reward mode cannot pay out.
+    address public constant USDT = address(0);
+    /// @notice Arc mainnet ERC-20 USDC (6 decimals).
+    address public constant USDC = 0x3600000000000000000000000000000000000000;
 
     bytes32 private constant _ELIGIBLE_TYPEHASH =
         keccak256("Eligible(address player,uint256 campaignId,uint256 deadline)");

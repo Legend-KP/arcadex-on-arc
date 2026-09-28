@@ -24,7 +24,7 @@ import { extractProgressExtras, extractModeLevels, lineLinkFieldsFromModes, read
 import { getWalletSessionToken } from "@/lib/wallet-session-client";
 import { usePlayerProfile } from "@/components/PlayerProfileProvider";
 import { resolveWalletOnAppOpen } from "@/lib/walletAuth";
-import { formatChainError } from "@/lib/celo-public-client";
+import { formatChainError } from "@/lib/arc-public-client";
 import { purchaseScoreSubmitOnChain } from "@/lib/score-submit-purchase";
 import {
   isArcadeXTxHubConfigured,
@@ -59,7 +59,7 @@ export default function GameClient({
     null
   );
   const dismissSubmitToast = useCallback(() => setSubmitToast(null), []);
-  /** Score waiting for a user tap — MiniPay needs a real gesture, not postMessage. */
+  /** Score waiting for a user tap — wallet needs a real gesture, not postMessage. */
   const [pendingSubmitScore, setPendingSubmitScore] = useState<number | null>(
     null
   );
@@ -319,7 +319,7 @@ export default function GameClient({
       return;
     }
 
-    // Release Unity pointer lock so MiniPay can show the wallet sheet.
+    // Release Unity pointer lock so wallet can show the wallet sheet.
     try {
       document.exitPointerLock?.();
     } catch {
@@ -331,8 +331,8 @@ export default function GameClient({
     setSubmitToast({
       phase: "submitting",
       message: contestLive
-        ? "Submitting score… Confirm the $0.05 payment in MiniPay."
-        : "Submitting score… Confirm once in MiniPay (gas only).",
+        ? "Submitting score… Confirm the $0.05 payment in wallet."
+        : "Submitting score… Confirm once in wallet (gas only).",
     });
     setPendingLeaderboardSubmit(game.id, score);
 
@@ -680,7 +680,7 @@ export default function GameClient({
             break;
           }
 
-          // Don't open MiniPay from postMessage — wait for a user tap on the shell.
+          // Don't open wallet from postMessage — wait for a user tap on the shell.
           try {
             document.exitPointerLock?.();
           } catch {
@@ -893,9 +893,9 @@ export default function GameClient({
               </p>
               <p className="lb-submit-confirm__hint">
                 {contestLive
-                  ? "100% of the Fees generated goes into the Rewards. Pay $0.05 in USDT or USDC. MiniPay will ask you to confirm once."
+                  ? "100% of the Fees generated goes into the Rewards. Pay $0.05 in USDT or USDC. wallet will ask you to confirm once."
                   : isArcadeXTxHubConfigured()
-                    ? "Publish your best score on the all-time leaderboard. MiniPay will ask you to confirm once — gas only."
+                    ? "Publish your best score on the all-time leaderboard. wallet will ask you to confirm once — gas only."
                     : "Contest is not live. Score submit with payment opens when a contest starts."}
               </p>
               {contestLive || isArcadeXTxHubConfigured() ? (

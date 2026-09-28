@@ -204,7 +204,7 @@ async function sessionFromExistingCheckIn(
 }
 
 /**
- * Primary MiniPay sign-in: on-chain `checkIn` on ArcadeXRewards
+ * Primary wallet sign-in: on-chain `checkIn` on ArcadeXRewards
  * (`0xc5BE4773D5B4a8e3C6f3E7a4C5f7cfBC38986ccF`) + `/api/streak/sync` JWT.
  *
  * If the wallet already checked in today (tx on CeloScan but app never got a
@@ -222,7 +222,7 @@ export async function performDailyCheckIn(
       return sessionFromExistingCheckIn(walletAddress, campaignId);
     }
 
-    // RPC flake after a successful MiniPay submit, or sync failure: if chain
+    // RPC flake after a successful wallet submit, or sync failure: if chain
     // already shows today's check-in, mint the session and let them in.
     try {
       const status = await fetchStreakStatus(walletAddress, campaignId, {

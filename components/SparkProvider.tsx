@@ -84,7 +84,7 @@ export default function SparkProvider({
 
   const spendForGame = useCallback(async (): Promise<boolean> => {
     if (!walletAddress) {
-      throw new Error("Connect your wallet in MiniPay to play.");
+      throw new Error("Connect your wallet to play.");
     }
 
     const result = await spendSpark(walletAddress);
@@ -94,7 +94,7 @@ export default function SparkProvider({
 
   const purchaseInfiniteSpark = useCallback(async (): Promise<void> => {
     if (!walletAddress) {
-      throw new Error("Connect your wallet in MiniPay to purchase Infinite Spark.");
+      throw new Error("Connect your wallet to purchase Infinite Spark.");
     }
 
     const { txHash } = await purchaseInfiniteSparkOnChain();
@@ -106,7 +106,7 @@ export default function SparkProvider({
 
   const purchaseSparkRefill = useCallback(async (): Promise<void> => {
     if (!walletAddress) {
-      throw new Error("Connect your wallet in MiniPay to purchase Spark Refill.");
+      throw new Error("Connect your wallet to purchase Spark Refill.");
     }
 
     const { txHash } = await purchaseSparkRefillOnChain();

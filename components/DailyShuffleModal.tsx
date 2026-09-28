@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { createPortal } from "react-dom";
-import { formatChainError } from "@/lib/celo-public-client";
+import { formatChainError } from "@/lib/arc-public-client";
 import { DEFAULT_SHUFFLE_CAMPAIGN_ID } from "@/lib/daily-play-mode";
 import {
   claimDailyShuffleReward,
@@ -327,7 +327,7 @@ export default function DailyShuffleModal({
     setPhase("busy");
 
     try {
-      // Never prompt MiniPay if today is already done.
+      // Never prompt wallet if today is already done.
       if (await recoverIfAlreadyDone()) return;
 
       const fresh = await fetchStreakStatus(walletAddress, campaignId, {
@@ -585,7 +585,7 @@ export default function DailyShuffleModal({
                 void handleShuffle();
               }}
             >
-              {phase === "busy" ? "Confirm in MiniPay…" : "Shuffle now · No cost"}
+              {phase === "busy" ? "Confirm in wallet…" : "Shuffle now · No cost"}
             </button>
           ) : null}
 

@@ -19,7 +19,7 @@ export interface VerifiedTxHubSignIn {
 }
 
 /**
- * Verify a MiniPay ArcadeXTxHub.signIn receipt for score publish (contest off).
+ * Verify a wallet ArcadeXTxHub.signIn receipt for score publish (contest off).
  */
 export async function verifyTxHubSignInTx(
   walletAddress: string,

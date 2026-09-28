@@ -128,7 +128,7 @@ export async function canMintDailySession(opts: {
     if (deviceSeenBeforeOnChainTx(seenAt, opts.lastCheckInAtSec)) {
       return true;
     }
-    // Pre-cookie check-in today: first MiniPay tab to restore a session
+    // Pre-cookie check-in today: first browser tab to restore a session
     // binds this device. Attackers after that fail the hash match above.
     if (!bound) return true;
   }

@@ -3,19 +3,18 @@ pragma solidity ^0.8.20;
 
 /**
  * @title ScoreSubmit
- * @notice Pay a configurable fee in USDT or USDC to submit scores on Celo Mainnet.
- * @dev Supports two ERC-20 tokens with separate accounting and shared access control.
- *      The submission fee is owner-adjustable post-deployment (e.g. for promotional discounts)
- *      so it never requires a redeploy / re-whitelisting on integrators like MiniPay.
+ * @notice Pay a configurable fee in USDC to submit scores on Arc Mainnet.
+ * @dev USDC-only (6-decimal ERC-20 at the Arc native USDC address).
+ *      The fee is owner-adjustable post-deployment (e.g. for promotional discounts).
  */
 contract ScoreSubmit {
-    address public constant USDT = 0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e;
-    address public constant USDC = 0xcebA9300f2b948710d2653dD7B07f33A8B32118C;
+    /// @notice Arc mainnet ERC-20 USDC (6 decimals). Same balance as native USDC / 10^12.
+    address public constant USDC = 0x3600000000000000000000000000000000000000;
 
-    /// @notice Current submission fee, in the token's smallest unit (USDT/USDC use 6 decimals).
+    /// @notice Current fee, in USDC smallest units (6 decimals).
     /// @dev Mutable so the owner can run promotions without redeploying the contract.
     ///      Default: 50_000 = $0.05
-    uint256 public fee = 50_000;
+    uint256 public fee = 50000;
 
     uint256 private constant _NOT_ENTERED = 1;
     uint256 private constant _ENTERED = 2;
@@ -25,16 +24,12 @@ contract ScoreSubmit {
     address public pendingOwner;
     bool public paused;
 
-    uint256 public totalCollectedUSDT;
     uint256 public totalCollectedUSDC;
-    uint256 public totalWithdrawnUSDT;
     uint256 public totalWithdrawnUSDC;
 
-    mapping(address => uint256) public payCountUSDT;
     mapping(address => uint256) public payCountUSDC;
 
     event EntryPaid(address indexed player, address indexed token, uint256 amount, uint256 timestamp);
-    event WithdrawnUSDT(address indexed to, uint256 amount);
     event WithdrawnUSDC(address indexed to, uint256 amount);
     event Paused(address indexed by);
     event Unpaused(address indexed by);
@@ -64,17 +59,6 @@ contract ScoreSubmit {
         _status = _NOT_ENTERED;
     }
 
-    function payWithUSDT() external nonReentrant whenNotPaused {
-        uint256 amount = fee;
-
-        payCountUSDT[msg.sender] += 1;
-        totalCollectedUSDT += amount;
-
-        _collectPayment(USDT, msg.sender, amount);
-
-        emit EntryPaid(msg.sender, USDT, amount, block.timestamp);
-    }
-
     function payWithUSDC() external nonReentrant whenNotPaused {
         uint256 amount = fee;
 
@@ -90,14 +74,6 @@ contract ScoreSubmit {
         uint256 oldFee = fee;
         fee = newFee;
         emit FeeUpdated(oldFee, newFee);
-    }
-
-    function withdrawUSDT() external onlyOwner nonReentrant {
-        uint256 bal = _balanceOf(USDT, address(this));
-        require(bal > 0, "No USDT to withdraw");
-        totalWithdrawnUSDT += bal;
-        _safeTransfer(USDT, owner, bal);
-        emit WithdrawnUSDT(owner, bal);
     }
 
     function withdrawUSDC() external onlyOwner nonReentrant {
@@ -122,7 +98,6 @@ contract ScoreSubmit {
 
     function transferOwnership(address newOwner) external onlyOwner {
         require(newOwner != address(0), "New owner is zero address");
-        require(newOwner != USDT, "New owner cannot be USDT contract");
         require(newOwner != USDC, "New owner cannot be USDC contract");
         require(newOwner != address(this), "New owner cannot be this contract");
         pendingOwner = newOwner;
@@ -136,10 +111,6 @@ contract ScoreSubmit {
         pendingOwner = address(0);
     }
 
-    function getBalanceUSDT() external view returns (uint256) {
-        return _balanceOf(USDT, address(this));
-    }
-
     function getBalanceUSDC() external view returns (uint256) {
         return _balanceOf(USDC, address(this));
     }
@@ -148,28 +119,18 @@ contract ScoreSubmit {
         external
         view
         returns (
-            uint256 currentUSDT,
             uint256 currentUSDC,
-            uint256 lifetimeUSDT,
             uint256 lifetimeUSDC,
-            uint256 withdrawnUSDT,
             uint256 withdrawnUSDC
         )
     {
-        currentUSDT = _balanceOf(USDT, address(this));
         currentUSDC = _balanceOf(USDC, address(this));
-        lifetimeUSDT = totalCollectedUSDT;
         lifetimeUSDC = totalCollectedUSDC;
-        withdrawnUSDT = totalWithdrawnUSDT;
         withdrawnUSDC = totalWithdrawnUSDC;
     }
 
     function getPayCount(address player) external view returns (uint256) {
-        return payCountUSDT[player] + payCountUSDC[player];
-    }
-
-    function getPayCountUSDT(address player) external view returns (uint256) {
-        return payCountUSDT[player];
+        return payCountUSDC[player];
     }
 
     function getPayCountUSDC(address player) external view returns (uint256) {
@@ -214,10 +175,10 @@ contract ScoreSubmit {
     }
 
     receive() external payable {
-        revert("No CELO accepted");
+        revert("No native value accepted");
     }
 
     fallback() external payable {
-        revert("No CELO accepted");
+        revert("No native value accepted");
     }
 }

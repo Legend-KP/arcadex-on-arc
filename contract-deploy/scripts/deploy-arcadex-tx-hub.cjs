@@ -8,7 +8,7 @@ async function main() {
   console.log("Deploying ArcadeXTxHub with account:", deployer.address);
 
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", hre.ethers.formatEther(balance), "CELO");
+  console.log("Account balance:", hre.ethers.formatEther(balance), "USDC");
 
   const ArcadeXTxHub = await hre.ethers.getContractFactory("ArcadeXTxHub");
   const contract = await ArcadeXTxHub.deploy();
@@ -25,23 +25,23 @@ async function main() {
 
   const deployment = {
     contract: "ArcadeXTxHub",
-    network: "celo-mainnet",
-    chainId: 42220,
+    network: "arc-mainnet",
+    chainId: 5042,
     address,
     owner,
     deployer: deployer.address,
     deployedAt: new Date().toISOString(),
     txHash: contract.deploymentTransaction()?.hash ?? null,
     notes:
-      "General MiniPay hub: signIn(purpose) free; payWithUSDT/USDC(purpose) after setFee.",
+      "General Arc hub: signIn(purpose) free; payWithUSDC(purpose) after setFee.",
   };
 
   writeFileSync(
-    join(outDir, "arcadex-tx-hub-celo-mainnet.json"),
+    join(outDir, "arcadex-tx-hub-arc-mainnet.json"),
     JSON.stringify(deployment, null, 2)
   );
 
-  console.log("Deployment saved to deployments/arcadex-tx-hub-celo-mainnet.json");
+  console.log("Deployment saved to deployments/arcadex-tx-hub-arc-mainnet.json");
 }
 
 main().catch((error) => {

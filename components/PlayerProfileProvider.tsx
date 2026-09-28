@@ -398,7 +398,7 @@ export default function PlayerProfileProvider({
 
         if (!isWalletAddress(wallet)) {
           throw new Error(
-            "Could not connect your wallet. Open ArcadeX in MiniPay and try again."
+            "Could not connect your wallet. Connect on Arc and try again."
           );
         }
 

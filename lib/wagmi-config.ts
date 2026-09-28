@@ -1,16 +1,19 @@
 import { injected } from "@wagmi/core";
 import { createConfig, http } from "wagmi";
-import { celo } from "viem/chains";
+import { ARC_DEFAULT_RPC_URL, arcChain } from "@/lib/arc-chain";
+
+const rpcUrl =
+  process.env.NEXT_PUBLIC_ARC_RPC_URL?.trim() || ARC_DEFAULT_RPC_URL;
 
 export const wagmiConfig = createConfig({
-  chains: [celo],
+  chains: [arcChain],
   connectors: [
     injected({
-      target: "metaMask",
+      shimDisconnect: true,
     }),
   ],
   transports: {
-    [celo.id]: http("https://forno.celo.org"),
+    [arcChain.id]: http(rpcUrl),
   },
   ssr: true,
 });

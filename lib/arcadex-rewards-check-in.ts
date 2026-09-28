@@ -1,10 +1,9 @@
 "use client";
 
 import type { Hash, Hex } from "viem";
-import { celo } from "viem/chains";
-import { getAttributionSuffix } from "@/lib/attribution";
-import { waitForCeloTransactionReceipt } from "@/lib/celo-public-client";
-import { createMiniPayWalletClient } from "@/lib/minipay";
+import { arcChain } from "@/lib/arc-chain";
+import { waitForArcTransactionReceipt } from "@/lib/arc-public-client";
+import { createInjectedWalletClient } from "@/lib/wallet";
 import {
   ARCADEX_REWARDS_ABI,
   ARCADEX_REWARDS_CONTRACT_ADDRESS,
@@ -13,11 +12,11 @@ import {
 } from "@/lib/arcadex-rewards";
 
 /**
- * MiniPay write of ArcadeXRewards.checkIn at
+ * wallet write of ArcadeXRewards.checkIn at
  * 0xc5BE4773D5B4a8e3C6f3E7a4C5f7cfBC38986ccF (campaigns without eligibility use deadline=0, signature=0x).
  *
  * Returns the tx hash even when local receipt polling flakes — `/api/streak/sync`
- * re-verifies on the server so a CeloScan-confirmed check-in still unlocks the app.
+ * re-verifies on the server so an explorer-confirmed check-in still unlocks the app.
  */
 export async function checkInOnChain(
   campaignId: number = DEFAULT_STREAK_CAMPAIGN_ID,
@@ -27,9 +26,9 @@ export async function checkInOnChain(
     throw new Error("ArcadeXRewards is not configured yet.");
   }
 
-  const walletClient = createMiniPayWalletClient();
+  const walletClient = createInjectedWalletClient();
   if (!walletClient) {
-    throw new Error("Open ArcadeX inside MiniPay to check in.");
+    throw new Error("Connect a wallet to check in.");
   }
 
   const [account] = await walletClient.getAddresses();
@@ -43,16 +42,15 @@ export async function checkInOnChain(
 
   const hash = await walletClient.writeContract({
     account,
-    chain: celo,
+    chain: arcChain,
     address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
     abi: ARCADEX_REWARDS_ABI,
     functionName: "checkIn",
     args: [BigInt(campaignId), deadline, signature],
-    dataSuffix: getAttributionSuffix(),
-  });
+      });
 
   try {
-    const receipt = await waitForCeloTransactionReceipt(hash);
+    const receipt = await waitForArcTransactionReceipt(hash);
     if (receipt.status !== "success") {
       throw new Error("Check-in transaction failed.");
     }

@@ -7,43 +7,34 @@ import {
   type Address,
   type Hash,
 } from "viem";
-import { celo } from "viem/chains";
-import {
-  appendAttributionSuffix,
-  getAttributionSuffix,
-} from "@/lib/attribution";
+import { ARC_MIN_MAX_FEE_PER_GAS_WEI, arcChain } from "@/lib/arc-chain";
 import {
   formatChainError,
-  getCeloFeeCurrencyGasPrice,
-  getCeloTransactionCount,
-  readCeloContract,
-  readCeloContractValue,
-  waitForCeloTransactionReceipt,
-} from "@/lib/celo-public-client";
+  getArcMaxFeePerGas,
+  getArcTransactionCount,
+  readArcContract,
+  readArcContractValue,
+  waitForArcTransactionReceipt,
+} from "@/lib/arc-public-client";
 import {
-  createMiniPayWalletClient,
+  createInjectedWalletClient,
   getInjectedProvider,
-} from "@/lib/minipay";
+} from "@/lib/wallet";
 import {
-  CELO_USDC_ADDRESS,
-  CELO_USDT_ADDRESS,
+  ARC_USDC_TOKEN_ADDRESS,
   ERC20_ABI,
   STABLECOIN_DECIMALS,
-  tokenAddress,
-  tokenFeeCurrency,
   type SparkRefillPaymentToken,
 } from "@/lib/spark-refill";
 
-/** ~$0.02 buffer so CIP-64 gas does not compete with the exact fee transfer. */
-const GAS_BUFFER = BigInt(20_000);
-/** Fixed gas limit — skips MiniPay eth_estimateGas (often "unknown RPC error"). */
+/** Fixed gas limit for ERC-20 transfer into payment contracts. */
 const TRANSFER_GAS_LIMIT = BigInt(120_000);
 
-/** Set true only while diagnosing MiniPay payment failures. */
+/** Set true only while diagnosing payment failures. */
 const DEBUG_PAYMENTS = false;
 
 async function readBalance(token: Address, account: Address): Promise<bigint> {
-  return readCeloContract({
+  return readArcContract({
     address: token,
     abi: ERC20_ABI,
     functionName: "balanceOf",
@@ -51,32 +42,16 @@ async function readBalance(token: Address, account: Address): Promise<bigint> {
   });
 }
 
-async function pickPaymentToken(
+async function requireUsdcBalance(
   account: Address,
   fee: bigint
 ): Promise<SparkRefillPaymentToken> {
-  const [usdtBalance, usdcBalance] = await Promise.all([
-    readBalance(CELO_USDT_ADDRESS, account),
-    readBalance(CELO_USDC_ADDRESS, account),
-  ]);
+  const usdcBalance = await readBalance(ARC_USDC_TOKEN_ADDRESS, account);
 
-  if (usdtBalance >= fee + GAS_BUFFER) return "USDT";
-  if (usdcBalance >= fee + GAS_BUFFER) return "USDC";
-
-  if (usdtBalance >= fee && usdcBalance > BigInt(0)) return "USDT";
-  if (usdcBalance >= fee && usdtBalance > BigInt(0)) return "USDC";
-
-  if (usdtBalance >= fee || usdcBalance >= fee) {
-    const needed = formatUnits(fee + GAS_BUFFER, STABLECOIN_DECIMALS);
-    throw new Error(
-      `Almost enough — keep about $${needed} in USDT/USDC so network fees are covered.`
-    );
-  }
+  if (usdcBalance >= fee) return "USDC";
 
   const needed = formatUnits(fee, STABLECOIN_DECIMALS);
-  throw new Error(
-    `Insufficient balance. You need $${needed} in USDT or USDC.`
-  );
+  throw new Error(`Insufficient USDC balance. You need $${needed} USDC.`);
 }
 
 type ViemLikeError = {
@@ -133,7 +108,6 @@ function serializeRawError(error: unknown): string {
   }
 }
 
-/** Compact debug line focused on viem shortMessage / details / root cause. */
 function summarizeRawError(error: unknown): string {
   const top = asViemError(error);
   const root = getRootCause(error);
@@ -172,7 +146,10 @@ function logRawError(stage: string, error: unknown): void {
   console.error(`[pay:${stage}] details:`, top?.details);
   console.error(`[pay:${stage}] metaMessages:`, top?.metaMessages);
   console.error(`[pay:${stage}] code:`, top?.code);
-  console.error(`[pay:${stage}] walked:`, typeof top?.walk === "function" ? top.walk() : null);
+  console.error(
+    `[pay:${stage}] walked:`,
+    typeof top?.walk === "function" ? top.walk() : null
+  );
   console.error(`[pay:${stage}] root cause:`, root);
   console.error(`[pay:${stage}] root cause message:`, rootObj?.message);
   console.error(`[pay:${stage}] root shortMessage:`, rootObj?.shortMessage);
@@ -187,7 +164,7 @@ function toFriendlyError(
   stage?: string
 ): Error {
   if (isUserRejection(error)) {
-    return new Error("Payment cancelled in MiniPay.");
+    return new Error("Payment cancelled in wallet.");
   }
 
   if (DEBUG_PAYMENTS) {
@@ -242,21 +219,26 @@ async function runStage<T>(stage: string, fn: () => Promise<T>): Promise<T> {
 }
 
 /**
- * Fully-prepared eth_sendTransaction — MiniPay only signs/sends.
- * Avoids viem prepareTransactionRequest hitting MiniPay for gas/price/nonce.
+ * Fully-prepared eth_sendTransaction — wallet only signs/sends.
+ * Gas is native USDC on Arc; CIP-64 feeCurrency is not used.
+ * maxFeePerGas is floored at 20 Gwei (Arc mempool drop threshold).
  */
-async function sendViaMiniPayProvider(options: {
+async function sendViaInjectedProvider(options: {
   account: Address;
   tokenAddr: Address;
   data: `0x${string}`;
-  feeCurrency: Address;
-  gasPrice: bigint;
+  maxFeePerGas: bigint;
   nonce: number;
 }): Promise<Hash> {
   const provider = getInjectedProvider();
   if (!provider) {
-    throw new Error("Open ArcadeX inside MiniPay to continue.");
+    throw new Error("Connect a wallet to continue.");
   }
+
+  const maxFee =
+    options.maxFeePerGas > ARC_MIN_MAX_FEE_PER_GAS_WEI
+      ? options.maxFeePerGas
+      : ARC_MIN_MAX_FEE_PER_GAS_WEI;
 
   const tx = {
     from: options.account,
@@ -264,9 +246,9 @@ async function sendViaMiniPayProvider(options: {
     data: options.data,
     value: "0x0",
     gas: toHex(TRANSFER_GAS_LIMIT),
-    gasPrice: toHex(options.gasPrice),
+    maxFeePerGas: toHex(maxFee),
+    maxPriorityFeePerGas: toHex(maxFee),
     nonce: toHex(options.nonce),
-    feeCurrency: options.feeCurrency,
   };
 
   const txHash = await provider.request({
@@ -275,14 +257,14 @@ async function sendViaMiniPayProvider(options: {
   });
 
   if (typeof txHash !== "string" || !txHash.startsWith("0x")) {
-    throw new Error("MiniPay did not return a transaction hash.");
+    throw new Error("Wallet did not return a transaction hash.");
   }
 
   return txHash as Hash;
 }
 
 /**
- * One MiniPay confirmation: ERC-20 `transfer(fee)` into the payment contract.
+ * One wallet confirmation: ERC-20 USDC `transfer(fee)` into the payment contract.
  */
 export async function purchaseStablecoinFeeOnChain(options: {
   contractAddress: Address;
@@ -292,7 +274,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
 }): Promise<{ txHash: Hash; token: SparkRefillPaymentToken }> {
   const { contractAddress, contractAbi, connectError, failError } = options;
 
-  const walletClient = createMiniPayWalletClient();
+  const walletClient = createInjectedWalletClient();
   if (!walletClient) {
     throw new Error(connectError);
   }
@@ -304,7 +286,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
   const account = getAddress(rawAccount);
 
   const paused = await runStage("paused", () =>
-    readCeloContractValue<boolean>({
+    readArcContractValue<boolean>({
       address: contractAddress,
       abi: contractAbi,
       functionName: "paused",
@@ -315,7 +297,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
   }
 
   const fee = await runStage("fee", () =>
-    readCeloContract({
+    readArcContract({
       address: contractAddress,
       abi: contractAbi,
       functionName: "fee",
@@ -323,26 +305,19 @@ export async function purchaseStablecoinFeeOnChain(options: {
   );
 
   const token = await runStage("balance", () =>
-    pickPaymentToken(account, fee)
+    requireUsdcBalance(account, fee)
   );
-  const tokenAddr = tokenAddress(token);
-  const feeCurrency = getAddress(tokenFeeCurrency(token));
+  const tokenAddr = ARC_USDC_TOKEN_ADDRESS;
   const recipient = getAddress(contractAddress);
 
-  const gasPrice = await runStage("gasPrice", () =>
-    getCeloFeeCurrencyGasPrice(feeCurrency)
-  );
-  const nonce = await runStage("nonce", () =>
-    getCeloTransactionCount(account)
-  );
+  const maxFeePerGas = await runStage("gasPrice", () => getArcMaxFeePerGas());
+  const nonce = await runStage("nonce", () => getArcTransactionCount(account));
 
-  const data = appendAttributionSuffix(
-    encodeFunctionData({
-      abi: ERC20_ABI,
-      functionName: "transfer",
-      args: [recipient, fee],
-    })
-  );
+  const data = encodeFunctionData({
+    abi: ERC20_ABI,
+    functionName: "transfer",
+    args: [recipient, fee],
+  });
 
   if (DEBUG_PAYMENTS) {
     console.info("[pay:prepare]", {
@@ -351,12 +326,10 @@ export async function purchaseStablecoinFeeOnChain(options: {
       tokenAddr,
       recipient,
       fee: fee.toString(),
-      feeCurrency,
       gas: TRANSFER_GAS_LIMIT.toString(),
-      gasPrice: gasPrice.toString(),
-      gasPriceHex: toHex(gasPrice),
+      maxFeePerGas: maxFeePerGas.toString(),
       nonce,
-      note: "gas+gasPrice+nonce prefilled from public RPC (not MiniPay)",
+      note: "Arc USDC-only; no CIP-64 feeCurrency",
     });
   }
 
@@ -364,53 +337,54 @@ export async function purchaseStablecoinFeeOnChain(options: {
   let providerError: unknown;
 
   try {
-    payHash = await sendViaMiniPayProvider({
+    payHash = await sendViaInjectedProvider({
       account,
       tokenAddr,
       data,
-      feeCurrency,
-      gasPrice,
+      maxFeePerGas,
       nonce,
     });
   } catch (error) {
     providerError = error;
     logRawError("eth_sendTransaction", error);
     if (isUserRejection(error)) {
-      throw new Error("Payment cancelled in MiniPay.");
+      throw new Error("Payment cancelled in wallet.");
     }
 
-    // Fallback: viem writeContract with the same pre-filled fields.
     try {
+      const feeCap =
+        maxFeePerGas > ARC_MIN_MAX_FEE_PER_GAS_WEI
+          ? maxFeePerGas
+          : ARC_MIN_MAX_FEE_PER_GAS_WEI;
       payHash = await walletClient.writeContract({
         account,
-        chain: celo,
+        chain: arcChain,
         address: tokenAddr,
         abi: ERC20_ABI,
         functionName: "transfer",
         args: [recipient, fee],
-        feeCurrency,
         gas: TRANSFER_GAS_LIMIT,
-        gasPrice,
+        maxFeePerGas: feeCap,
+        maxPriorityFeePerGas: feeCap,
         nonce,
-        dataSuffix: getAttributionSuffix(),
       });
     } catch (writeError) {
       logRawError("writeContract", writeError);
       throw toFriendlyError(
         writeError ?? providerError,
-        `${failError} MiniPay could not open the payment sheet.`,
+        `${failError} Wallet could not open the payment sheet.`,
         "writeContract"
       );
     }
   }
 
   const payReceipt = await runStage("receipt", () =>
-    waitForCeloTransactionReceipt(payHash)
+    waitForArcTransactionReceipt(payHash)
   );
 
   if (payReceipt.status !== "success") {
     throw new Error(
-      `${failError} The transfer was rejected on-chain. Keep a little extra USDT/USDC for network fees.`
+      `${failError} The transfer was rejected on-chain. Keep a little extra USDC for network fees.`
     );
   }
 

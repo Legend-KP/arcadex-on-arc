@@ -8,7 +8,7 @@ async function main() {
   console.log("Deploying ScoreSubmit with account:", deployer.address);
 
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", hre.ethers.formatEther(balance), "CELO");
+  console.log("Account balance:", hre.ethers.formatEther(balance), "USDC");
 
   const ScoreSubmit = await hre.ethers.getContractFactory("ScoreSubmit");
   const contract = await ScoreSubmit.deploy();
@@ -25,8 +25,8 @@ async function main() {
 
   const deployment = {
     contract: "ScoreSubmit",
-    network: "celo-mainnet",
-    chainId: 42220,
+    network: "arc-mainnet",
+    chainId: 5042,
     address,
     fee: fee.toString(),
     deployer: deployer.address,
@@ -35,11 +35,11 @@ async function main() {
   };
 
   writeFileSync(
-    join(outDir, "score-submit-celo-mainnet.json"),
+    join(outDir, "score-submit-arc-mainnet.json"),
     JSON.stringify(deployment, null, 2)
   );
 
-  console.log("Deployment saved to deployments/score-submit-celo-mainnet.json");
+  console.log("Deployment saved to deployments/score-submit-arc-mainnet.json");
 }
 
 main().catch((error) => {

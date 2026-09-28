@@ -1,7 +1,7 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import MiniPayProvider from "@/components/MiniPayProvider";
+import WalletProvider from "@/components/WalletProvider";
 import PlayerProfileProvider from "@/components/PlayerProfileProvider";
 import SparkProvider from "@/components/SparkProvider";
 import TouchSfxListener from "@/components/TouchSfxListener";
@@ -19,13 +19,13 @@ export default function AppProviders({
   }
 
   return (
-    <MiniPayProvider>
+    <WalletProvider>
       <PlayerProfileProvider>
         <SparkProvider>
           <TouchSfxListener />
           {children}
         </SparkProvider>
       </PlayerProfileProvider>
-    </MiniPayProvider>
+    </WalletProvider>
   );
 }

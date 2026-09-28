@@ -4,7 +4,7 @@ import {
   hashTypedData,
 } from "viem";
 import { privateKeyToAccount } from "viem/accounts";
-import { celo } from "viem/chains";
+import { arcChain } from "@/lib/arc-chain";
 import { ARCADEX_REWARDS_CONTRACT_ADDRESS } from "@/lib/arcadex-rewards";
 
 const SPIN_TYPES = {
@@ -55,7 +55,7 @@ export async function signShuffleSpin(params: {
     domain: {
       name: "ArcadeXRewards",
       version: "1",
-      chainId: celo.id,
+      chainId: arcChain.id,
       verifyingContract: ARCADEX_REWARDS_CONTRACT_ADDRESS,
     },
     types: SPIN_TYPES,
@@ -85,7 +85,7 @@ export function hashShuffleSpin(params: {
     domain: {
       name: "ArcadeXRewards",
       version: "1",
-      chainId: celo.id,
+      chainId: arcChain.id,
       verifyingContract: ARCADEX_REWARDS_CONTRACT_ADDRESS,
     },
     types: SPIN_TYPES,

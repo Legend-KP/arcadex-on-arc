@@ -13,7 +13,7 @@ export async function purchaseScoreSubmitOnChain(): Promise<{
   return purchaseStablecoinFeeOnChain({
     contractAddress: SCORE_SUBMIT_CONTRACT_ADDRESS,
     contractAbi: SCORE_SUBMIT_ABI,
-    connectError: "Connect your wallet in MiniPay to submit your score.",
+    connectError: "Connect your wallet to submit your score.",
     failError: "Score submission payment failed.",
   });
 }

@@ -13,7 +13,7 @@ export async function purchaseSparkRefillOnChain(): Promise<{
   return purchaseStablecoinFeeOnChain({
     contractAddress: SPARK_REFILL_CONTRACT_ADDRESS,
     contractAbi: SPARK_REFILL_ABI,
-    connectError: "Connect your wallet in MiniPay to purchase Spark Refill.",
+    connectError: "Connect your wallet to purchase Spark Refill.",
     failError: "Spark Refill payment failed.",
   });
 }

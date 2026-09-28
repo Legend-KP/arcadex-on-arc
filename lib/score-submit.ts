@@ -7,17 +7,20 @@ import {
   ERC20_ABI,
   SPARK_REFILL_ABI,
   STABLECOIN_DECIMALS,
+  ARC_USDC_TOKEN_ADDRESS,
 } from "@/lib/spark-refill";
 
-export const SCORE_SUBMIT_CONTRACT_ADDRESS =
-  (process.env.NEXT_PUBLIC_SCORE_SUBMIT_CONTRACT ??
-    "0x7EE96ddeabB9a7A93cd4A66A32aC45622028555F") as Address;
+/** Set NEXT_PUBLIC_SCORE_SUBMIT_CONTRACT after deploying to Arc — no Celo default. */
+export const SCORE_SUBMIT_CONTRACT_ADDRESS = (
+  process.env.NEXT_PUBLIC_SCORE_SUBMIT_CONTRACT?.trim() || ""
+) as Address;
 
-export type ScoreSubmitPaymentToken = "USDT" | "USDC";
+export type ScoreSubmitPaymentToken = "USDC";
 
 export const SCORE_SUBMIT_ABI = SPARK_REFILL_ABI;
 
 export {
+  ARC_USDC_TOKEN_ADDRESS,
   CELO_USDC_ADDRESS,
   CELO_USDC_FEE_CURRENCY,
   CELO_USDT_ADDRESS,
@@ -26,10 +29,13 @@ export {
   STABLECOIN_DECIMALS,
 };
 
-export function tokenAddress(token: ScoreSubmitPaymentToken): Address {
-  return token === "USDT" ? CELO_USDT_ADDRESS : CELO_USDC_ADDRESS;
+export function tokenAddress(_token: ScoreSubmitPaymentToken = "USDC"): Address {
+  return ARC_USDC_TOKEN_ADDRESS;
 }
 
-export function tokenFeeCurrency(token: ScoreSubmitPaymentToken): Address {
-  return token === "USDT" ? CELO_USDT_FEE_CURRENCY : CELO_USDC_FEE_CURRENCY;
+/** @deprecated CIP-64 unused on Arc. */
+export function tokenFeeCurrency(
+  _token: ScoreSubmitPaymentToken = "USDC"
+): Address {
+  return CELO_USDC_FEE_CURRENCY;
 }

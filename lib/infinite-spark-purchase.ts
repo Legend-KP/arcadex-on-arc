@@ -13,7 +13,7 @@ export async function purchaseInfiniteSparkOnChain(): Promise<{
   return purchaseStablecoinFeeOnChain({
     contractAddress: INFINITE_SPARK_CONTRACT_ADDRESS,
     contractAbi: INFINITE_SPARK_ABI,
-    connectError: "Connect your wallet in MiniPay to purchase Infinite Spark.",
+    connectError: "Connect your wallet to purchase Infinite Spark.",
     failError: "Infinite Spark payment failed.",
   });
 }

@@ -14,7 +14,7 @@ async function main() {
   console.log("Deploying ArcadeXRewards with account:", deployer.address);
 
   const balance = await hre.ethers.provider.getBalance(deployer.address);
-  console.log("Account balance:", hre.ethers.formatEther(balance), "CELO");
+  console.log("Account balance:", hre.ethers.formatEther(balance), "USDC");
 
   // Pass deployer as initial eligibility signer (can rotate later). Zero skips gated campaigns.
   const ArcadeXRewards = await hre.ethers.getContractFactory("ArcadeXRewards");
@@ -59,8 +59,8 @@ async function main() {
 
   const deployment = {
     contract: "ArcadeXRewards",
-    network: "celo-mainnet",
-    chainId: 42220,
+    network: "arc-mainnet",
+    chainId: 5042,
     address,
     campaignId: CAMPAIGN_ID,
     campaignType: "STREAK",
@@ -83,11 +83,11 @@ async function main() {
   };
 
   writeFileSync(
-    join(outDir, "arcadex-rewards-celo-mainnet.json"),
+    join(outDir, "arcadex-rewards-arc-mainnet.json"),
     JSON.stringify(deployment, null, 2)
   );
 
-  console.log("Saved deployments/arcadex-rewards-celo-mainnet.json");
+  console.log("Saved deployments/arcadex-rewards-arc-mainnet.json");
   console.log("Set NEXT_PUBLIC_ARCADEX_REWARDS_CONTRACT=" + address);
 }
 

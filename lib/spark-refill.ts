@@ -1,25 +1,31 @@
 import type { Address } from "viem";
+import { ARC_USDC_ADDRESS } from "@/lib/arc-chain";
 
 export const SPARK_REFILL_CONTRACT_ADDRESS =
   (process.env.NEXT_PUBLIC_SPARK_REFILL_CONTRACT ??
-    "0xD7EA6F0212b5b54a9fA4fc2d805CE63426A48B18") as Address;
+    "") as Address;
 
-export const CELO_USDT_ADDRESS =
-  "0x48065fbBE25f71C9282ddf5e1cD6D6A887483D5e" as Address;
+/** Arc mainnet ERC-20 USDC (6 decimals). */
+export const ARC_USDC_TOKEN_ADDRESS = ARC_USDC_ADDRESS as Address;
 
-export const CELO_USDC_ADDRESS =
-  "0xcebA9300f2b948710d2653dD7B07f33A8B32118C" as Address;
+/** @deprecated Use ARC_USDC_TOKEN_ADDRESS — no USDT on Arc. */
+export const CELO_USDT_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
 
-/** CIP-64 fee-currency adapters (6-decimal tokens). */
+/** @deprecated Use ARC_USDC_TOKEN_ADDRESS */
+export const CELO_USDC_ADDRESS = ARC_USDC_TOKEN_ADDRESS;
+
+/** @deprecated CIP-64 fee currency is Celo-only; unused on Arc. */
 export const CELO_USDT_FEE_CURRENCY =
-  "0x0e2a3e05bc9a16f5292a6170456a710cb89c6f72" as Address;
+  "0x0000000000000000000000000000000000000000" as Address;
 
+/** @deprecated CIP-64 fee currency is Celo-only; unused on Arc. */
 export const CELO_USDC_FEE_CURRENCY =
-  "0x2F25deB3848C207fc8E0c34035B3Ba7fC157602B" as Address;
+  "0x0000000000000000000000000000000000000000" as Address;
 
 export const STABLECOIN_DECIMALS = 6;
 
-export type SparkRefillPaymentToken = "USDT" | "USDC";
+/** Arc payments are USDC-only. */
+export type SparkRefillPaymentToken = "USDC";
 
 export const SPARK_REFILL_ABI = [
   { inputs: [], stateMutability: "nonpayable", type: "constructor" },
@@ -331,10 +337,11 @@ export const ERC20_ABI = [
   },
 ] as const;
 
-export function tokenAddress(token: SparkRefillPaymentToken): Address {
-  return token === "USDT" ? CELO_USDT_ADDRESS : CELO_USDC_ADDRESS;
+export function tokenAddress(_token: SparkRefillPaymentToken = "USDC"): Address {
+  return ARC_USDC_TOKEN_ADDRESS;
 }
 
-export function tokenFeeCurrency(token: SparkRefillPaymentToken): Address {
-  return token === "USDT" ? CELO_USDT_FEE_CURRENCY : CELO_USDC_FEE_CURRENCY;
+/** @deprecated CIP-64 fee currency unused on Arc. */
+export function tokenFeeCurrency(_token: SparkRefillPaymentToken = "USDC"): Address {
+  return "0x0000000000000000000000000000000000000000";
 }
