@@ -9,7 +9,6 @@ import {
   encodeFunctionData,
   getAddress,
   type Abi,
-  type Account,
   type Address,
   type Hash,
   type Hex,
@@ -215,7 +214,7 @@ export async function sendArcContractWrite(options: {
   // 4) Last resort — viem writeContract without fee overrides (wallet estimates).
   try {
     const hash = await walletClient.writeContract({
-      account: account as Account,
+      account,
       // Explicit null — avoids injecting chainId into wallet payloads (Rainbow/MM).
       chain: null,
       address: to,
