@@ -16,9 +16,7 @@
 		"enabled": true
 	},
 	/**
-	 * NEW Arc Worker + D1 — placeholders only.
-	 * Do NOT point these at live arcadex-celo / MiniPay D1 ids.
-	 * Create new Cloudflare Worker names + D1 databases, then fill the ids.
+	 * Arc Worker + D1 — separate from live arcadex-celo / MiniPay.
 	 *
 	 * Deploy:
 	 *   npm run deploy:preview
@@ -30,7 +28,13 @@
 			"vars": {
 				"PLAYER_DATA_BACKEND": "d1",
 				"NEXT_PUBLIC_CHAIN_ID": "5042",
-				"NEXT_PUBLIC_ARC_RPC_URL": "https://rpc.mainnet.arc.io"
+				"NEXT_PUBLIC_ARC_RPC_URL": "https://rpc.mainnet.arc.io",
+				"NEXT_PUBLIC_SPARK_REFILL_CONTRACT": "0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
+				"NEXT_PUBLIC_SCORE_SUBMIT_CONTRACT": "0x393A322846Cb9b95E9aFC6521e727Cf6C8af8501",
+				"NEXT_PUBLIC_INFINITE_SPARK_CONTRACT": "0x54CfCe40CaeF51b986DAf9abbc0C6dea0fA40a35",
+				"NEXT_PUBLIC_ARCADEX_TX_HUB_CONTRACT": "0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
+				"NEXT_PUBLIC_ARCADEX_REWARDS_CONTRACT": "0x10E69E455BCA4606B8820d342d3e52c01C17049c",
+				"NEXT_PUBLIC_STREAK_CAMPAIGN_ID": "1"
 			},
 			"services": [
 				{
@@ -41,14 +45,14 @@
 			"kv_namespaces": [
 				{
 					"binding": "RATE_LIMIT_KV",
-					"id": "REPLACE_WITH_NEW_ARC_PREVIEW_KV_ID"
+					"id": "0f19cabb73844762a768ee1dd6e8e53b"
 				}
 			],
 			"d1_databases": [
 				{
 					"binding": "DB",
 					"database_name": "arcadex-arc-preview",
-					"database_id": "REPLACE_WITH_NEW_ARC_PREVIEW_D1_ID",
+					"database_id": "0b2219a2-ab94-4fbf-bfff-87f05d3eeaa2",
 					"migrations_dir": "migrations",
 					"preview_database_id": "arcadex-arc-preview-local"
 				}
@@ -59,7 +63,13 @@
 			"vars": {
 				"PLAYER_DATA_BACKEND": "d1",
 				"NEXT_PUBLIC_CHAIN_ID": "5042",
-				"NEXT_PUBLIC_ARC_RPC_URL": "https://rpc.mainnet.arc.io"
+				"NEXT_PUBLIC_ARC_RPC_URL": "https://rpc.mainnet.arc.io",
+				"NEXT_PUBLIC_SPARK_REFILL_CONTRACT": "0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
+				"NEXT_PUBLIC_SCORE_SUBMIT_CONTRACT": "0x393A322846Cb9b95E9aFC6521e727Cf6C8af8501",
+				"NEXT_PUBLIC_INFINITE_SPARK_CONTRACT": "0x54CfCe40CaeF51b986DAf9abbc0C6dea0fA40a35",
+				"NEXT_PUBLIC_ARCADEX_TX_HUB_CONTRACT": "0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
+				"NEXT_PUBLIC_ARCADEX_REWARDS_CONTRACT": "0x10E69E455BCA4606B8820d342d3e52c01C17049c",
+				"NEXT_PUBLIC_STREAK_CAMPAIGN_ID": "1"
 			},
 			"services": [
 				{
@@ -70,14 +80,14 @@
 			"kv_namespaces": [
 				{
 					"binding": "RATE_LIMIT_KV",
-					"id": "REPLACE_WITH_NEW_ARC_PROD_KV_ID"
+					"id": "8a833e80dae74b879e383945f1c2f7ae"
 				}
 			],
 			"d1_databases": [
 				{
 					"binding": "DB",
 					"database_name": "arcadex-arc-prod",
-					"database_id": "REPLACE_WITH_NEW_ARC_PROD_D1_ID",
+					"database_id": "2f60fea6-cdc5-4383-b15d-581021b05ae4",
 					"migrations_dir": "migrations"
 				}
 			]
