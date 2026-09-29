@@ -558,57 +558,25 @@ export async function getSparkSnapshotFromServer(
   return computeSparkSnapshot(state);
 }
 
-export class SparkSpendError extends Error {
-  constructor(
-    message: string,
-    public readonly code: "NO_SPARKS" | "NO_WALLET"
-  ) {
-    super(message);
-    this.name = "SparkSpendError";
-  }
-}
+export {
+  SparkSpendError,
+  InfiniteSparkActivationError,
+  SparkRefillActivationError,
+  ScoreSubmitActivationError,
+  StreakSyncError,
+  StreakRewardError,
+  GameStateConflictError,
+} from "@/lib/player-errors";
 
-export class InfiniteSparkActivationError extends Error {
-  constructor(
-    message: string,
-    public readonly code:
-      | "NO_WALLET"
-      | "INVALID_TX"
-      | "TX_ALREADY_USED"
-  ) {
-    super(message);
-    this.name = "InfiniteSparkActivationError";
-  }
-}
-
-export class SparkRefillActivationError extends Error {
-  constructor(
-    message: string,
-    public readonly code:
-      | "NO_WALLET"
-      | "INVALID_TX"
-      | "TX_ALREADY_USED"
-  ) {
-    super(message);
-    this.name = "SparkRefillActivationError";
-  }
-}
-
-export class ScoreSubmitActivationError extends Error {
-  constructor(
-    message: string,
-    public readonly code:
-      | "NO_WALLET"
-      | "NO_NAME"
-      | "INVALID_TX"
-      | "TX_ALREADY_USED"
-      | "NO_SCORE"
-      | "NOT_CONFIGURED"
-  ) {
-    super(message);
-    this.name = "ScoreSubmitActivationError";
-  }
-}
+import {
+  SparkSpendError,
+  InfiniteSparkActivationError,
+  SparkRefillActivationError,
+  ScoreSubmitActivationError,
+  StreakSyncError,
+  StreakRewardError,
+  GameStateConflictError,
+} from "@/lib/player-errors";
 
 function sparkPaymentPath(txHash: string): string {
   return `sparkPayments/${txHash.toLowerCase()}`;
@@ -725,7 +693,17 @@ export async function activateInfiniteSparkOnServer(
     };
   }
 
-  await verifyInfiniteSparkPaymentTx(wallet, normalizedTxHash as Hash);
+  try {
+    await verifyInfiniteSparkPaymentTx(wallet, normalizedTxHash as Hash);
+  } catch (err) {
+    if (err instanceof InfiniteSparkActivationError) throw err;
+    throw new InfiniteSparkActivationError(
+      err instanceof Error
+        ? err.message
+        : "Infinite Spark payment could not be verified on Arc.",
+      "INVALID_TX"
+    );
+  }
 
   const now = Date.now();
   const state = normalizeSparkState(await ensureSparkStateOnServer(wallet), now);
@@ -823,7 +801,17 @@ export async function activateSparkRefillOnServer(
     };
   }
 
-  await verifySparkRefillPaymentTx(wallet, normalizedTxHash as Hash);
+  try {
+    await verifySparkRefillPaymentTx(wallet, normalizedTxHash as Hash);
+  } catch (err) {
+    if (err instanceof SparkRefillActivationError) throw err;
+    throw new SparkRefillActivationError(
+      err instanceof Error
+        ? err.message
+        : "Spark refill payment could not be verified on Arc.",
+      "INVALID_TX"
+    );
+  }
 
   const now = Date.now();
   const state = normalizeSparkState(await ensureSparkStateOnServer(wallet), now);
@@ -879,33 +867,6 @@ function checkInTxPath(txHash: string): string {
 
 function streakGrantPath(txHash: string): string {
   return `streakGrants/${txHash.toLowerCase()}`;
-}
-
-export class StreakSyncError extends Error {
-  constructor(
-    message: string,
-    public readonly code:
-      | "NO_WALLET"
-      | "INVALID_TX"
-      | "TX_ALREADY_USED"
-  ) {
-    super(message);
-    this.name = "StreakSyncError";
-  }
-}
-
-export class StreakRewardError extends Error {
-  constructor(
-    message: string,
-    public readonly code:
-      | "NO_WALLET"
-      | "INVALID_TX"
-      | "TX_ALREADY_USED"
-      | "NO_MILESTONE"
-  ) {
-    super(message);
-    this.name = "StreakRewardError";
-  }
 }
 
 export async function recordCheckInTxOnServer(
@@ -2010,18 +1971,6 @@ export async function fetchGameStateFromServer(
     revision: typeof stored?.r === "number" ? stored.r : 0,
     state,
   };
-}
-
-export class GameStateConflictError extends Error {
-  revision: number;
-  state: Record<string, unknown> | null;
-
-  constructor(revision: number, state: Record<string, unknown> | null) {
-    super("Game state revision conflict.");
-    this.name = "GameStateConflictError";
-    this.revision = revision;
-    this.state = state;
-  }
 }
 
 /**

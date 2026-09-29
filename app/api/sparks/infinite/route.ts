@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import {
   activateInfiniteSparkOnServer,
   InfiniteSparkActivationError,
+  isCodedError,
 } from "@/lib/player-backend";
 import {
   checkRateLimit,
@@ -58,15 +59,17 @@ export async function POST(request: Request) {
     const result = await activateInfiniteSparkOnServer(wallet, txHash);
     return NextResponse.json(result);
   } catch (err) {
-    if (err instanceof InfiniteSparkActivationError) {
-      const status =
-        err.code === "TX_ALREADY_USED"
-          ? 409
-          : err.code === "INVALID_TX"
-            ? 400
-            : 400;
+    if (
+      err instanceof InfiniteSparkActivationError ||
+      isCodedError(err, "InfiniteSparkActivationError")
+    ) {
+      const code =
+        err instanceof InfiniteSparkActivationError
+          ? err.code
+          : (err as { code: string }).code;
+      const status = code === "TX_ALREADY_USED" ? 409 : 400;
       return NextResponse.json(
-        { error: err.message, code: err.code },
+        { error: (err as Error).message, code },
         { status }
       );
     }
@@ -75,6 +78,7 @@ export async function POST(request: Request) {
       err instanceof Error
         ? err.message
         : "Failed to activate Infinite Spark.";
+    console.error("[sparks/infinite]", message, err);
     return NextResponse.json({ error: message }, { status: 500 });
   }
 }

@@ -1,6 +1,8 @@
 import {
   decodeEventLog,
   getAddress,
+  createPublicClient,
+  http,
   type Address,
   type Hash,
   type Abi,
@@ -11,6 +13,8 @@ import {
   resetArcPublicClient,
   isBlockOutOfRangeError,
 } from "@/lib/arc-public-client";
+import { arcChain } from "@/lib/arc-chain";
+import { getArcUpstreamRpcUrls } from "@/lib/arc-rpc";
 
 const RECEIPT_RETRY_DELAYS_MS = [0, 500, 1200, 2500];
 
@@ -71,6 +75,23 @@ export async function getPaymentTransactionReceipt(
       const receipt = await getArcPublicClient().getTransactionReceipt({
         hash: txHash,
       });
+      if (receipt) return receipt;
+    } catch (error) {
+      lastError = error;
+      if (!isTransientReceiptError(error)) throw error;
+    }
+  }
+
+  // Exhaust remaining upstream RPCs explicitly (server rotation may have wrapped).
+  for (const rpcUrl of getArcUpstreamRpcUrls()) {
+    try {
+      const client = createPublicClient({
+        chain: arcChain,
+        batch: { multicall: false },
+        cacheTime: 0,
+        transport: http(rpcUrl, { timeout: 12_000 }),
+      });
+      const receipt = await client.getTransactionReceipt({ hash: txHash });
       if (receipt) return receipt;
     } catch (error) {
       lastError = error;

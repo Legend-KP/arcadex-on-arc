@@ -80,8 +80,10 @@ import {
   SparkSpendError,
   StreakRewardError,
   StreakSyncError,
-  type GameStateRecord,
-  type ShufflePendingRecord,
+} from "@/lib/player-errors";
+import type {
+  GameStateRecord,
+  ShufflePendingRecord,
 } from "@/lib/rtdb-server";
 import { scrubSecrets } from "@/lib/firebase-admin";
 
@@ -820,7 +822,17 @@ export async function activateInfiniteSparkOnServer(
     };
   }
 
-  await verifyInfiniteSparkPaymentTx(wallet, normalizedTxHash as Hash);
+  try {
+    await verifyInfiniteSparkPaymentTx(wallet, normalizedTxHash as Hash);
+  } catch (err) {
+    if (err instanceof InfiniteSparkActivationError) throw err;
+    throw new InfiniteSparkActivationError(
+      err instanceof Error
+        ? err.message
+        : "Infinite Spark payment could not be verified on Arc.",
+      "INVALID_TX"
+    );
+  }
 
   const now = Date.now();
   const state = normalizeSparkState(await ensureSparkStateOnServer(wallet), now);
@@ -917,7 +929,17 @@ export async function activateSparkRefillOnServer(
     };
   }
 
-  await verifySparkRefillPaymentTx(wallet, normalizedTxHash as Hash);
+  try {
+    await verifySparkRefillPaymentTx(wallet, normalizedTxHash as Hash);
+  } catch (err) {
+    if (err instanceof SparkRefillActivationError) throw err;
+    throw new SparkRefillActivationError(
+      err instanceof Error
+        ? err.message
+        : "Spark refill payment could not be verified on Arc.",
+      "INVALID_TX"
+    );
+  }
 
   const now = Date.now();
   const state = normalizeSparkState(await ensureSparkStateOnServer(wallet), now);

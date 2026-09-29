@@ -8,8 +8,6 @@ import * as d1 from "@/lib/d1-server";
 import * as rtdb from "@/lib/rtdb-server";
 import { scheduleWorkerWork } from "@/lib/worker-context";
 
-export type { GameStateRecord, ShufflePendingRecord } from "@/lib/rtdb-server";
-
 export {
   SparkSpendError,
   InfiniteSparkActivationError,
@@ -18,6 +16,10 @@ export {
   StreakSyncError,
   StreakRewardError,
   GameStateConflictError,
+  isCodedError,
+} from "@/lib/player-errors";
+
+export {
   // Pure helpers (identical on both backends)
   readStoredScore,
   storedProgressToGameProgress,
@@ -28,6 +30,8 @@ export {
   // Raw RTDB shallow read (admin tools that still need RTDB trees)
   readPathShallow,
 } from "@/lib/rtdb-server";
+
+export type { GameStateRecord, ShufflePendingRecord } from "@/lib/rtdb-server";
 
 async function withPlayerBackend<T>(
   d1Fn: () => Promise<T>,

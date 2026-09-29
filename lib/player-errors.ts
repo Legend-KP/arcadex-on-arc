@@ -1,5 +1,17 @@
 /** Shared player-store errors (RTDB + D1). */
 
+/** Duck-type check — survives OpenNext/Workers duplicate module copies where instanceof fails. */
+export function isCodedError(
+  err: unknown,
+  name: string
+): err is Error & { code: string } {
+  return (
+    err instanceof Error &&
+    err.name === name &&
+    typeof (err as { code?: unknown }).code === "string"
+  );
+}
+
 export class SparkSpendError extends Error {
   constructor(
     message: string,

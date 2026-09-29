@@ -35,7 +35,8 @@ function createHttpClient(rpcUrl: string) {
 type ArcPublicClient = ReturnType<typeof createHttpClient>;
 
 let browserClient: ArcPublicClient | null = null;
-let browserClientIndex = 0;
+/** Shared rotation index for server-side failover (browser always uses /api/rpc). */
+let serverRpcIndex = 0;
 
 function createBrowserPublicClient(): ArcPublicClient {
   // Always hit same-origin /api/rpc so ad blockers cannot kill Arc reads.
@@ -49,15 +50,17 @@ export function getArcPublicClient(): ArcPublicClient {
     return browserClient;
   }
 
-  return createHttpClient(getRpcUrls()[0]!);
+  const urls = getRpcUrls();
+  const url = urls[serverRpcIndex % urls.length]!;
+  return createHttpClient(url);
 }
 
-/** Reset cached browser client (proxy is sticky; index kept for server failover helpers). */
+/** Reset cached browser client and rotate server RPC for the next attempt. */
 export function resetArcPublicClient(): void {
   browserClient = null;
   const urls = getRpcUrls();
   if (urls.length > 0) {
-    browserClientIndex = (browserClientIndex + 1) % urls.length;
+    serverRpcIndex = (serverRpcIndex + 1) % urls.length;
   }
 }
 
