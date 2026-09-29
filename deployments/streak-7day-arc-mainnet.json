@@ -1,0 +1,14 @@
+{
+  "contract": "ArcadeXRewards",
+  "address": "0x10E69E455BCA4606B8820d342d3e52c01C17049c",
+  "network": "arc-mainnet",
+  "chainId": 5042,
+  "campaignId": 1,
+  "requiredDays": 7,
+  "setCampaignTxHash": "0x6d8f403db57e0a10695562e00ee3e037326c1737109708974a38dc90e475ee1d",
+  "updatedAt": "2026-09-29T09:18:16.708Z",
+  "env": {
+    "NEXT_PUBLIC_STREAK_CAMPAIGN_ID": "1",
+    "NEXT_PUBLIC_ARCADEX_REWARDS_CONTRACT": "0x10E69E455BCA4606B8820d342d3e52c01C17049c"
+  }
+}

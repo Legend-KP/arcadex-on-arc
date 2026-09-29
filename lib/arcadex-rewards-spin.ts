@@ -13,7 +13,7 @@ import {
   isArcadeXRewardsConfigured,
 } from "@/lib/arcadex-rewards";
 import { DEFAULT_SHUFFLE_CAMPAIGN_ID } from "@/lib/daily-play-mode";
-import { createInjectedWalletClient } from "@/lib/wallet";
+import { createInjectedWalletClient, prepareWalletForArcTx } from "@/lib/wallet";
 
 export async function spinOnChain(opts: {
   campaignId?: number;
@@ -28,9 +28,11 @@ export async function spinOnChain(opts: {
     throw new Error("ArcadeXRewards is not configured yet.");
   }
 
+  await prepareWalletForArcTx();
+
   const walletClient = createInjectedWalletClient();
   if (!walletClient) {
-    throw new Error("Open ArcadeX inside wallet to shuffle.");
+    throw new Error("Connect a wallet to shuffle.");
   }
 
   const [account] = await walletClient.getAddresses();
@@ -95,9 +97,11 @@ export async function claimShuffleRewardOnChain(
     throw new Error("ArcadeXRewards is not configured yet.");
   }
 
+  await prepareWalletForArcTx();
+
   const walletClient = createInjectedWalletClient();
   if (!walletClient) {
-    throw new Error("Open ArcadeX inside wallet to claim.");
+    throw new Error("Connect a wallet to claim.");
   }
 
   const [account] = await walletClient.getAddresses();

@@ -6,8 +6,8 @@ const { getNetworkMeta } = require("./network-meta.cjs");
 const SECONDS_PER_DAY = 24 * 60 * 60;
 /** New Arc campaign — do NOT reuse Celo campaign 4. */
 const CAMPAIGN_ID = 1;
-/** Match live ArcadeX 30-day off-chain Infinite Spark ladder. */
-const REQUIRED_DAYS = 30;
+/** 7-day ladder → Infinite Spark (24h) off-chain reward. */
+const REQUIRED_DAYS = 7;
 const REWARD_OFFCHAIN = 0;
 const CAMPAIGN_TYPE_STREAK = 0;
 
@@ -55,7 +55,7 @@ async function main() {
   console.log(
     "Campaign",
     CAMPAIGN_ID,
-    "configured (30-day OFFCHAIN Infinite Spark STREAK)"
+    "configured (7-day OFFCHAIN Infinite Spark STREAK)"
   );
   console.log("  startTime:", startTime);
   console.log("  endTime:", endTime);

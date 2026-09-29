@@ -3,7 +3,7 @@
 import type { Hash, Hex } from "viem";
 import { arcChain } from "@/lib/arc-chain";
 import { waitForArcTransactionReceipt } from "@/lib/arc-public-client";
-import { createInjectedWalletClient } from "@/lib/wallet";
+import { createInjectedWalletClient, prepareWalletForArcTx } from "@/lib/wallet";
 import {
   ARCADEX_REWARDS_ABI,
   ARCADEX_REWARDS_CONTRACT_ADDRESS,
@@ -12,8 +12,8 @@ import {
 } from "@/lib/arcadex-rewards";
 
 /**
- * wallet write of ArcadeXRewards.checkIn at
- * 0xc5BE4773D5B4a8e3C6f3E7a4C5f7cfBC38986ccF (campaigns without eligibility use deadline=0, signature=0x).
+ * wallet write of ArcadeXRewards.checkIn
+ * (campaigns without eligibility use deadline=0, signature=0x).
  *
  * Returns the tx hash even when local receipt polling flakes — `/api/streak/sync`
  * re-verifies on the server so an explorer-confirmed check-in still unlocks the app.
@@ -25,6 +25,8 @@ export async function checkInOnChain(
   if (!isArcadeXRewardsConfigured()) {
     throw new Error("ArcadeXRewards is not configured yet.");
   }
+
+  await prepareWalletForArcTx();
 
   const walletClient = createInjectedWalletClient();
   if (!walletClient) {
@@ -47,7 +49,7 @@ export async function checkInOnChain(
     abi: ARCADEX_REWARDS_ABI,
     functionName: "checkIn",
     args: [BigInt(campaignId), deadline, signature],
-      });
+  });
 
   try {
     const receipt = await waitForArcTransactionReceipt(hash);

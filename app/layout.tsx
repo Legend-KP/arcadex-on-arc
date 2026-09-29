@@ -5,6 +5,10 @@ import AppProviders from "@/components/AppProviders";
 export const metadata: Metadata = {
   title: "ArcadeX",
   description: "Play fun mini-games on ArcadeX",
+  icons: {
+    icon: [{ url: "/favicon.webp", type: "image/webp" }],
+    apple: [{ url: "/favicon.webp", type: "image/webp" }],
+  },
 };
 
 export const viewport: Viewport = {

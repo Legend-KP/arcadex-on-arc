@@ -5,13 +5,13 @@ import {
   type WalletClient,
 } from "viem";
 import { arcChain } from "@/lib/arc-chain";
+import {
+  ensureArcChain,
+  getPreferredInjectedProvider,
+  type InjectedProvider,
+} from "@/lib/arc-wallet";
 
-type InjectedProvider = EIP1193Provider & {
-  isMetaMask?: boolean;
-  isCoinbaseWallet?: boolean;
-  isRabby?: boolean;
-  providers?: InjectedProvider[];
-};
+export type { InjectedProvider };
 
 declare global {
   interface Window {
@@ -25,18 +25,7 @@ export function hasInjectedWallet(): boolean {
 }
 
 export function getInjectedProvider(): InjectedProvider | null {
-  if (typeof window === "undefined" || !window.ethereum) return null;
-  const eth = window.ethereum;
-  if (Array.isArray(eth.providers) && eth.providers.length > 0) {
-    return (
-      eth.providers.find((p) => p.isMetaMask) ||
-      eth.providers.find((p) => p.isRabby) ||
-      eth.providers.find((p) => p.isCoinbaseWallet) ||
-      eth.providers[0] ||
-      eth
-    );
-  }
-  return eth;
+  return getPreferredInjectedProvider();
 }
 
 export function createInjectedWalletClient(): WalletClient | null {
@@ -45,8 +34,22 @@ export function createInjectedWalletClient(): WalletClient | null {
 
   return createWalletClient({
     chain: arcChain,
-    transport: custom(provider),
+    transport: custom(provider as EIP1193Provider),
   });
+}
+
+/**
+ * Ensure the connected wallet is on Arc before a write.
+ * No-op if no provider (caller should already require a wallet).
+ */
+export async function prepareWalletForArcTx(): Promise<void> {
+  const provider = getInjectedProvider();
+  if (!provider) {
+    throw new Error(
+      "Connect a wallet (MetaMask, Coinbase, Rabby, OKX, or Brave) on Arc to continue."
+    );
+  }
+  await ensureArcChain(provider);
 }
 
 /** @deprecated Use createInjectedWalletClient — MiniPay is not used on Arc. */

@@ -14,6 +14,7 @@ import DailyShuffleModal from "@/components/DailyShuffleModal";
 import DailyStreakBrokenModal from "@/components/DailyStreakBrokenModal";
 import OnboardingModal from "@/components/OnboardingModal";
 import PlayerNameModal from "@/components/PlayerNameModal";
+import WalletConnectModal from "@/components/WalletConnectModal";
 import { fetchDailyPlayConfig } from "@/lib/daily-play-config-client";
 import type { DailyPlayMode } from "@/lib/daily-play-mode";
 import {
@@ -118,6 +119,7 @@ export default function PlayerProfileProvider({
   );
   const [isReady, setIsReady] = useState(false);
   const [showModal, setShowModal] = useState(false);
+  const [showWalletConnect, setShowWalletConnect] = useState(false);
   const [showCheckIn, setShowCheckIn] = useState(false);
   /** After the broken-streak animation, skip it for this session break. */
   const [streakBrokenDismissed, setStreakBrokenDismissed] = useState(false);
@@ -127,6 +129,7 @@ export default function PlayerProfileProvider({
   const [dailyCampaignId, setDailyCampaignId] = useState(1);
   const [streakStatus, setStreakStatus] = useState<StreakStatus | null>(null);
   const [saving, setSaving] = useState(false);
+  const [connectingWallet, setConnectingWallet] = useState(false);
   const [error, setError] = useState("");
   const nameCompleteRef = useRef(false);
   const pendingWalletRef = useRef<string | null>(null);
@@ -199,6 +202,105 @@ export default function PlayerProfileProvider({
     }
   }, []);
 
+  const continueAfterWallet = useCallback(
+    async (wallet: string) => {
+      setShowWalletConnect(false);
+      setCachedWallet(wallet);
+      setWalletAddress(wallet);
+      setPlayerId(wallet);
+      pendingWalletRef.current = wallet;
+      setError("");
+
+      try {
+        void fetchHomeShell(wallet);
+
+        if (isArcadeXRewardsConfigured()) {
+          const config = await fetchDailyPlayConfig({ fresh: true });
+          setDailyPlayMode(config.mode);
+          setDailyCampaignId(config.campaignId);
+
+          const status = await fetchStreakStatus(wallet, config.campaignId, {
+            fresh: true,
+          });
+          setStreakStatus(status);
+
+          const shuffleAlreadyDone =
+            config.shuffle &&
+            (hasShuffleDoneToday(wallet, config.campaignId) ||
+              (!status.canCheckIn && status.lastCheckInAt > 0));
+
+          if (shuffleAlreadyDone) {
+            markShuffleDoneToday(wallet, config.campaignId);
+          }
+
+          if (status.canCheckIn && !shuffleAlreadyDone) {
+            clearWalletSessionToken();
+            setShowCheckIn(true);
+            return;
+          }
+
+          if (!hasValidWalletSession(wallet)) {
+            try {
+              await refreshSessionFromCheckIn(wallet, config.campaignId);
+            } catch (err) {
+              if (
+                err instanceof SessionRefreshError &&
+                err.code === "NEED_CHECKIN"
+              ) {
+                clearWalletSessionToken();
+                if (!status.canCheckIn || shuffleAlreadyDone) {
+                  try {
+                    await ensureWalletSession(wallet);
+                  } catch {
+                    // Continue into the app; API calls may prompt auth later.
+                  }
+                  await finishProfileLoad(wallet);
+                  return;
+                }
+                setShowCheckIn(true);
+                return;
+              }
+              throw err;
+            }
+          }
+        } else if (!hasValidWalletSession(wallet)) {
+          try {
+            await ensureWalletSession(wallet);
+          } catch {
+            // personal_sign optional when rewards/auth not fully configured
+          }
+        }
+
+        await finishProfileLoad(wallet);
+      } catch (err) {
+        const cachedName = getCachedPlayerName()?.trim();
+        if (cachedName) {
+          const fallbackProfile: PlayerProfile = {
+            id: wallet,
+            name: cachedName,
+            walletAddress: wallet,
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+          };
+          setProfile(fallbackProfile);
+          nameCompleteRef.current = true;
+          setShowModal(false);
+          setError("");
+          return;
+        }
+
+        nameCompleteRef.current = false;
+        setShowModal(true);
+        setError(
+          err instanceof Error
+            ? err.message
+            : "Could not load your profile. Please try again."
+        );
+      }
+    },
+    [finishProfileLoad]
+  );
+
   useEffect(() => {
     let cancelled = false;
 
@@ -224,123 +326,35 @@ export default function PlayerProfileProvider({
       if (cancelled) return;
 
       if (!wallet) {
-        setShowModal(true);
+        setShowWalletConnect(true);
         nameCompleteRef.current = false;
         setIsReady(true);
         return;
       }
 
-      setCachedWallet(wallet);
-      setWalletAddress(wallet);
-      setPlayerId(wallet);
-      pendingWalletRef.current = wallet;
-
-      try {
-        // Catalog, plays, and sparks — do not wait on the Celo streak read.
-        void fetchHomeShell(wallet);
-
-        // Sign-in: ArcadeXRewards checkIn/spin → session JWT.
-        if (isArcadeXRewardsConfigured()) {
-          // Runtime config (Cloudflare vars) — do not rely on build-time NEXT_PUBLIC alone.
-          const config = await fetchDailyPlayConfig({ fresh: true });
-          if (cancelled) return;
-          setDailyPlayMode(config.mode);
-          setDailyCampaignId(config.campaignId);
-
-          const status = await fetchStreakStatus(wallet, config.campaignId, {
-            fresh: true,
-          });
-          if (cancelled) return;
-          setStreakStatus(status);
-
-          const shuffleAlreadyDone =
-            config.shuffle &&
-            (hasShuffleDoneToday(wallet, config.campaignId) ||
-              (!status.canCheckIn && status.lastCheckInAt > 0));
-
-          if (shuffleAlreadyDone) {
-            markShuffleDoneToday(wallet, config.campaignId);
-          }
-
-          // Shuffle UI only when today is still available — never reopen if done.
-          if (status.canCheckIn && !shuffleAlreadyDone) {
-            clearWalletSessionToken();
-            setShowCheckIn(true);
-            setIsReady(true);
-            return;
-          }
-
-          if (!hasValidWalletSession(wallet)) {
-            try {
-              await refreshSessionFromCheckIn(wallet, config.campaignId);
-            } catch (err) {
-              if (
-                err instanceof SessionRefreshError &&
-                err.code === "NEED_CHECKIN"
-              ) {
-                clearWalletSessionToken();
-                // Already done today: restore session silently — do not show Shuffle UI.
-                if (!status.canCheckIn || shuffleAlreadyDone) {
-                  try {
-                    await ensureWalletSession(wallet);
-                  } catch {
-                    // Continue into the app; API calls may prompt auth later.
-                  }
-                  await finishProfileLoad(wallet);
-                  return;
-                }
-                setShowCheckIn(true);
-                setIsReady(true);
-                return;
-              }
-              throw err;
-            }
-          }
-        } else if (!hasValidWalletSession(wallet)) {
-          try {
-            await ensureWalletSession(wallet);
-          } catch {
-            // personal_sign optional when rewards/auth not fully configured
-          }
-        }
-
-        await finishProfileLoad(wallet);
-      } catch (err) {
-        if (cancelled) return;
-
-        const cachedName = getCachedPlayerName()?.trim();
-        if (cachedName) {
-          const fallbackProfile: PlayerProfile = {
-            id: wallet,
-            name: cachedName,
-            walletAddress: wallet,
-            createdAt: Date.now(),
-            updatedAt: Date.now(),
-          };
-          setProfile(fallbackProfile);
-          nameCompleteRef.current = true;
-          setShowModal(false);
-          setError("");
-          return;
-        }
-
-        nameCompleteRef.current = false;
-        setShowModal(true);
-        setError(
-          err instanceof Error
-            ? err.message
-            : "Could not load your profile. Please try again."
-        );
-      } finally {
-        if (!cancelled) setIsReady(true);
-      }
+      await continueAfterWallet(wallet);
+      if (!cancelled) setIsReady(true);
     }
 
     loadProfile();
     return () => {
       cancelled = true;
     };
-  }, [finishProfileLoad]);
+  }, [continueAfterWallet]);
+
+  const handleWalletConnected = useCallback(
+    async (address: string) => {
+      setConnectingWallet(true);
+      setError("");
+      try {
+        await continueAfterWallet(address);
+      } finally {
+        setConnectingWallet(false);
+        setIsReady(true);
+      }
+    },
+    [continueAfterWallet]
+  );
 
   const handleCheckInComplete = useCallback(
     async (result: {
@@ -467,11 +481,19 @@ export default function PlayerProfileProvider({
   const defaultName =
     profile?.name?.trim() || getCachedPlayerName()?.trim() || "";
 
-  // New-user order: onboarding → streak broken (if needed) → daily streak → name modal
+  // New-user order: onboarding → wallet connect → streak broken → daily → name
   const onboardingVisible = showOnboarding === true;
   const onboardingResolved = showOnboarding !== null;
+  const walletConnectVisible =
+    onboardingResolved &&
+    !onboardingVisible &&
+    showWalletConnect &&
+    !walletAddress;
   const checkInVisible =
-    onboardingResolved && !onboardingVisible && showCheckIn;
+    onboardingResolved &&
+    !onboardingVisible &&
+    !walletConnectVisible &&
+    showCheckIn;
 
   const previousBrokenDays = streakStatus?.currentDay ?? 0;
   const lastBrokenCheckInAt = streakStatus?.lastCheckInAt ?? 0;
@@ -496,12 +518,14 @@ export default function PlayerProfileProvider({
   const nameModalVisible =
     onboardingResolved &&
     !onboardingVisible &&
+    !walletConnectVisible &&
     !showCheckIn &&
     showModal;
 
   const criticalModalsBlocking =
     !onboardingResolved ||
     onboardingVisible ||
+    walletConnectVisible ||
     checkInVisible ||
     nameModalVisible;
 
@@ -537,6 +561,13 @@ export default function PlayerProfileProvider({
       <OnboardingModal
         open={onboardingVisible}
         onComplete={handleOnboardingComplete}
+      />
+      <WalletConnectModal
+        open={walletConnectVisible}
+        connecting={connectingWallet}
+        error={error}
+        onConnected={(address) => void handleWalletConnected(address)}
+        onError={setError}
       />
       <DailyStreakBrokenModal
         open={streakBrokenVisible}

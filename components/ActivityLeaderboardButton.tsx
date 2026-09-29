@@ -160,7 +160,7 @@ export default function ActivityLeaderboardButton({
               className="lb-sheet activity-lb-sheet"
               role="dialog"
               aria-modal="true"
-              aria-label="Weekly Activity Leaderboard"
+              aria-label="XP Leaderboard"
               onClick={(e) => e.stopPropagation()}
               onTouchStart={handleTouchStart}
               onTouchEnd={handleTouchEnd}
@@ -171,7 +171,7 @@ export default function ActivityLeaderboardButton({
                     🏆
                   </span>
                   <div className="lb-title-stack">
-                    <span className="lb-title">Weekly Activity Leaderboard</span>
+                    <span className="lb-title">XP Leaderboard</span>
                     <span className="activity-lb-reset" role="status">
                       <span className="activity-lb-reset__dot" aria-hidden="true" />
                       <span className="activity-lb-reset__label">Resets in</span>
@@ -192,7 +192,7 @@ export default function ActivityLeaderboardButton({
               </div>
 
               <p className="activity-lb-hint">
-                Come daily and play games to climb the board.
+                Come daily and play games to climb the XP leaderboard.
               </p>
 
               <div className="lb-timer-panel activity-lb-prize" role="status">
@@ -272,10 +272,10 @@ export default function ActivityLeaderboardButton({
         type="button"
         className="activity-lb-btn"
         onClick={() => setOpen(true)}
-        aria-label="Open weekly activity leaderboard"
+        aria-label="Open XP leaderboard"
       >
         <TrophyIcon />
-        <span className="activity-lb-btn__label">Board</span>
+        <span className="activity-lb-btn__label">XP</span>
       </button>
       {sheet}
     </>

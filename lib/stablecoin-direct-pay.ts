@@ -19,6 +19,7 @@ import {
 import {
   createInjectedWalletClient,
   getInjectedProvider,
+  prepareWalletForArcTx,
 } from "@/lib/wallet";
 import {
   ARC_USDC_TOKEN_ADDRESS,
@@ -278,6 +279,8 @@ export async function purchaseStablecoinFeeOnChain(options: {
   if (!walletClient) {
     throw new Error(connectError);
   }
+
+  await prepareWalletForArcTx();
 
   const [rawAccount] = await walletClient.getAddresses();
   if (!rawAccount) {

@@ -20,6 +20,10 @@ import {
   submitScoreToLeaderboard,
 } from "@/lib/leaderboard-client";
 import { buildGameIframeUrl, getShellOrigin } from "@/lib/game-iframe-url";
+import {
+  applyGameIframeCoverLayout,
+  computeGameIframeCoverLayout,
+} from "@/lib/game-iframe-fit";
 import { extractProgressExtras, extractModeLevels, lineLinkFieldsFromModes, readProgressNumber } from "@/lib/progress-value";
 import { getWalletSessionToken } from "@/lib/wallet-session-client";
 import { usePlayerProfile } from "@/components/PlayerProfileProvider";
@@ -53,6 +57,7 @@ export default function GameClient({
   onBackToMenu,
 }: GameClientProps) {
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const iframeWrapRef = useRef<HTMLDivElement>(null);
   const loadFallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [gameReady, setGameReady] = useState(false);
   const [submitToast, setSubmitToast] = useState<LeaderboardSubmitToastState | null>(
@@ -833,6 +838,58 @@ export default function GameClient({
     return () => window.removeEventListener("message", handleMessage);
   }, [handleMessage]);
 
+  // Portrait games (1080×1920): keep a design-size iframe and scale it to cover
+  // the shell so Unity always sees 9:16 (no letterbox/pillarbox bars).
+  useEffect(() => {
+    if (!iframeSrc) return;
+
+    let observer: ResizeObserver | null = null;
+    let cancelled = false;
+    let raf = 0;
+
+    const applyCoverFit = (wrap: HTMLDivElement, iframe: HTMLIFrameElement) => {
+      const layout = computeGameIframeCoverLayout(
+        wrap.clientWidth,
+        wrap.clientHeight
+      );
+      if (!layout) return;
+      applyGameIframeCoverLayout(iframe, layout);
+    };
+
+    const setup = () => {
+      if (cancelled) return;
+      const wrap = iframeWrapRef.current;
+      const iframe = iframeRef.current;
+      if (!wrap || !iframe) {
+        raf = requestAnimationFrame(setup);
+        return;
+      }
+
+      applyCoverFit(wrap, iframe);
+
+      observer = new ResizeObserver(() => applyCoverFit(wrap, iframe));
+      observer.observe(wrap);
+      window.visualViewport?.addEventListener("resize", onViewportChange);
+      window.addEventListener("orientationchange", onViewportChange);
+    };
+
+    const onViewportChange = () => {
+      const wrap = iframeWrapRef.current;
+      const iframe = iframeRef.current;
+      if (wrap && iframe) applyCoverFit(wrap, iframe);
+    };
+
+    setup();
+
+    return () => {
+      cancelled = true;
+      cancelAnimationFrame(raf);
+      observer?.disconnect();
+      window.visualViewport?.removeEventListener("resize", onViewportChange);
+      window.removeEventListener("orientationchange", onViewportChange);
+    };
+  }, [iframeSrc, gameReady]);
+
   return (
     <div className="game-page">
       {!gameReady && (
@@ -851,7 +908,7 @@ export default function GameClient({
         <img src="/home-button.png" alt="" className="game-home-btn-icon" />
       </button>
 
-      <div className="iframe-wrap">
+      <div className="iframe-wrap" ref={iframeWrapRef}>
         {!isReady || !iframeSrc ? (
           <LoadingScreen message="Connecting wallet" />
         ) : (

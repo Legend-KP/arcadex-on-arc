@@ -2,7 +2,7 @@ import type { Address, Hash, Hex } from "viem";
 import { keccak256, toBytes } from "viem";
 import { arcChain } from "@/lib/arc-chain";
 import { waitForArcTransactionReceipt } from "@/lib/arc-public-client";
-import { createInjectedWalletClient } from "@/lib/wallet";
+import { createInjectedWalletClient, prepareWalletForArcTx } from "@/lib/wallet";
 
 /** ArcadeXTxHub on Arc mainnet — set after deploy. Free signIn + USDC pay purposes. */
 export const ARCADEX_TX_HUB_CONTRACT_ADDRESS = (
@@ -380,6 +380,8 @@ export async function signInOnChain(purpose: Hex): Promise<{ txHash: Hash }> {
   if (!isArcadeXTxHubConfigured()) {
     throw new Error("ArcadeXTxHub is not configured yet.");
   }
+
+  await prepareWalletForArcTx();
 
   const walletClient = createInjectedWalletClient();
   if (!walletClient) {
