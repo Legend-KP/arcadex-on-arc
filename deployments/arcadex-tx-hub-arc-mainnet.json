@@ -1,19 +1,19 @@
 {
-  "contract": "ArcadeXTxHub",
-  "network": "arc-mainnet",
-  "chainId": 5042,
-  "address": "0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
-  "usdc": "0x3600000000000000000000000000000000000000",
-  "usdcDecimals": 6,
-  "deployer": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
-  "deployedAt": "2026-09-28T00:00:00.000Z",
-  "txHash": "0x53d8634305a32196b498468bf2d08f6f8b19207713039f12467bd8f8a1b51304",
-  "verified": true,
-  "explorer": "https://explorer.arc.io/address/0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
-  "verifiedAt": "2026-09-28T15:07:39.652Z",
-  "verification": {
-    "sourcify": "https://sourcify.dev/#/lookup/5042/0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
-    "explorer": "https://explorer.arc.io/address/0x5282cbB845006F9ecE9d042153A6C4Dc806347aa#code",
-    "explorerVerified": false
-  }
+    "contract":  "ArcadeXTxHub",
+    "network":  "arc-mainnet",
+    "chainId":  5042,
+    "address":  "0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
+    "usdc":  "0x3600000000000000000000000000000000000000",
+    "usdcDecimals":  6,
+    "deployer":  "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+    "deployedAt":  "2026-09-28T00:00:00.000Z",
+    "txHash":  "0x53d8634305a32196b498468bf2d08f6f8b19207713039f12467bd8f8a1b51304",
+    "verified":  true,
+    "explorer":  "https://explorer.arc.io/address/0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
+    "verifiedAt":  "2026-09-29T07:48:55.6320008Z",
+    "verification":  {
+                         "sourcify":  "https://sourcify.dev/#/lookup/5042/0x5282cbB845006F9ecE9d042153A6C4Dc806347aa",
+                         "explorer":  "https://explorer.arc.io/address/0x5282cbB845006F9ecE9d042153A6C4Dc806347aa#code",
+                         "explorerVerified":  true
+                     }
 }

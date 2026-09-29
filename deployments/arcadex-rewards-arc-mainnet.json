@@ -1,24 +1,24 @@
 {
-  "contract": "ArcadeXRewards",
-  "network": "arc-mainnet",
-  "chainId": 5042,
-  "address": "0x10E69E455BCA4606B8820d342d3e52c01C17049c",
-  "usdc": "0x3600000000000000000000000000000000000000",
-  "usdcDecimals": 6,
-  "deployer": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
-  "initialEligibilitySigner": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
-  "constructorArgs": [
-    "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70"
-  ],
-  "deployedAt": "2026-09-28T00:00:00.000Z",
-  "txHash": "0x54ff5001421a18058ded8e8a983d24e4a25a91c8a20a19eb7aa5568fe04a4d58",
-  "verified": true,
-  "campaignId": 1,
-  "explorer": "https://explorer.arc.io/address/0x10E69E455BCA4606B8820d342d3e52c01C17049c",
-  "verifiedAt": "2026-09-28T15:07:58.122Z",
-  "verification": {
-    "sourcify": "https://sourcify.dev/#/lookup/5042/0x10E69E455BCA4606B8820d342d3e52c01C17049c",
-    "explorer": "https://explorer.arc.io/address/0x10E69E455BCA4606B8820d342d3e52c01C17049c#code",
-    "explorerVerified": false
-  }
+    "contract":  "ArcadeXRewards",
+    "network":  "arc-mainnet",
+    "chainId":  5042,
+    "address":  "0x10E69E455BCA4606B8820d342d3e52c01C17049c",
+    "usdc":  "0x3600000000000000000000000000000000000000",
+    "usdcDecimals":  6,
+    "deployer":  "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+    "initialEligibilitySigner":  "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+    "constructorArgs":  [
+                            "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70"
+                        ],
+    "deployedAt":  "2026-09-28T00:00:00.000Z",
+    "txHash":  "0x54ff5001421a18058ded8e8a983d24e4a25a91c8a20a19eb7aa5568fe04a4d58",
+    "verified":  true,
+    "campaignId":  1,
+    "explorer":  "https://explorer.arc.io/address/0x10E69E455BCA4606B8820d342d3e52c01C17049c",
+    "verifiedAt":  "2026-09-29T07:48:55.6320008Z",
+    "verification":  {
+                         "sourcify":  "https://sourcify.dev/#/lookup/5042/0x10E69E455BCA4606B8820d342d3e52c01C17049c",
+                         "explorer":  "https://explorer.arc.io/address/0x10E69E455BCA4606B8820d342d3e52c01C17049c#code",
+                         "explorerVerified":  true
+                     }
 }

@@ -1,20 +1,20 @@
 {
-  "contract": "SparkRefill",
-  "network": "arc-mainnet",
-  "chainId": 5042,
-  "address": "0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
-  "usdc": "0x3600000000000000000000000000000000000000",
-  "usdcDecimals": 6,
-  "deployer": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
-  "deployedAt": "2026-09-28T00:00:00.000Z",
-  "txHash": "0x513c5ca6e2bfe0790806d0029f923e310ad9f725c59e5f51c01135a507e546d0",
-  "verified": true,
-  "fee": "50000",
-  "explorer": "https://explorer.arc.io/address/0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
-  "verifiedAt": "2026-09-28T15:07:29.890Z",
-  "verification": {
-    "sourcify": "https://sourcify.dev/#/lookup/5042/0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
-    "explorer": "https://explorer.arc.io/address/0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E#code",
-    "explorerVerified": false
-  }
+    "contract":  "SparkRefill",
+    "network":  "arc-mainnet",
+    "chainId":  5042,
+    "address":  "0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
+    "usdc":  "0x3600000000000000000000000000000000000000",
+    "usdcDecimals":  6,
+    "deployer":  "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+    "deployedAt":  "2026-09-28T00:00:00.000Z",
+    "txHash":  "0x513c5ca6e2bfe0790806d0029f923e310ad9f725c59e5f51c01135a507e546d0",
+    "verified":  true,
+    "fee":  "50000",
+    "explorer":  "https://explorer.arc.io/address/0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
+    "verifiedAt":  "2026-09-29T07:48:55.6320008Z",
+    "verification":  {
+                         "sourcify":  "https://sourcify.dev/#/lookup/5042/0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E",
+                         "explorer":  "https://explorer.arc.io/address/0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E#code",
+                         "explorerVerified":  true
+                     }
 }
