@@ -31,6 +31,7 @@ export interface ArcWalletOption {
 export type InjectedProvider = EIP1193Provider & {
   isMetaMask?: boolean;
   isRainbow?: boolean;
+  isRainbowWallet?: boolean;
   isCoinbaseWallet?: boolean;
   isRabby?: boolean;
   isOkxWallet?: boolean;
@@ -57,6 +58,7 @@ export const ARC_WALLET_OPTIONS: ArcWalletOption[] = [
     match: (p) =>
       Boolean(p.isMetaMask) &&
       !p.isRainbow &&
+      !p.isRainbowWallet &&
       !p.isRabby &&
       !p.isBraveWallet,
   },
@@ -65,7 +67,7 @@ export const ARC_WALLET_OPTIONS: ArcWalletOption[] = [
     name: "Rainbow",
     description: "Ethereum wallet · supports Arc",
     installUrl: "https://rainbow.me/download",
-    match: (p) => Boolean(p.isRainbow),
+    match: (p) => Boolean(p.isRainbow || p.isRainbowWallet),
   },
   {
     id: "coinbase",
@@ -200,9 +202,14 @@ export function getPreferredInjectedProvider(): InjectedProvider | null {
 
   return (
     providers.find(
-      (p) => p.isMetaMask && !p.isRainbow && !p.isRabby && !p.isBraveWallet
+      (p) =>
+        p.isMetaMask &&
+        !p.isRainbow &&
+        !p.isRainbowWallet &&
+        !p.isRabby &&
+        !p.isBraveWallet
     ) ||
-    providers.find((p) => p.isRainbow) ||
+    providers.find((p) => p.isRainbow || p.isRainbowWallet) ||
     providers.find((p) => p.isRabby) ||
     providers.find((p) => p.isCoinbaseWallet) ||
     providers.find((p) => p.isOkxWallet || p.isOKExWallet) ||
@@ -225,36 +232,43 @@ export async function ensureArcChain(
 
   const target = toHexChainId(ARC_CHAIN_ID);
 
-  try {
-    const current = (await provider.request({
-      method: "eth_chainId",
-    })) as string;
-    if (current?.toLowerCase() === target.toLowerCase()) return;
-  } catch {
-    // Continue — try switch anyway
-  }
+  const readChainId = async (): Promise<string | null> => {
+    try {
+      return ((await provider.request({
+        method: "eth_chainId",
+      })) as string) ?? null;
+    } catch {
+      return null;
+    }
+  };
+
+  const current = await readChainId();
+  if (current?.toLowerCase() === target.toLowerCase()) return;
 
   try {
     await provider.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: target }],
     });
-    return;
+    const afterSwitch = await readChainId();
+    if (afterSwitch?.toLowerCase() === target.toLowerCase()) return;
   } catch (err) {
     const code =
       err && typeof err === "object" && "code" in err
         ? Number((err as { code: unknown }).code)
         : 0;
-    // 4902 = unrecognized chain — add it
-    if (code !== 4902 && code !== -32603) {
-      const msg = err instanceof Error ? err.message : String(err);
-      if (!/unrecognized|not added|4902/i.test(msg)) {
-        throw new Error(
-          msg.includes("reject") || msg.includes("denied")
-            ? "Switch to Arc was cancelled in your wallet."
-            : "Could not switch your wallet to Arc. Add Arc (chain 5042) and try again."
-        );
+    const msg = err instanceof Error ? err.message : String(err);
+    const needsAdd =
+      code === 4902 ||
+      code === -32603 ||
+      code === -32602 ||
+      /unrecognized|not added|4902|invalid.*chain|does not exist/i.test(msg);
+
+    if (!needsAdd) {
+      if (/reject|denied|cancel/i.test(msg)) {
+        throw new Error("Switch to Arc was cancelled in your wallet.");
       }
+      // Fall through and try addEthereumChain anyway (Rainbow often needs this).
     }
   }
 
@@ -279,23 +293,28 @@ export async function ensureArcChain(
       ],
     });
   } catch (err) {
-    // Already on Arc / user rejected / wallet already has the chain
     const msg = err instanceof Error ? err.message : String(err);
     if (/reject|denied|cancel/i.test(msg)) {
-      throw new Error("Switch to Arc was cancelled in your wallet.");
+      throw new Error("Adding Arc was cancelled in your wallet.");
     }
-    try {
-      const current = (await provider.request({
-        method: "eth_chainId",
-      })) as string;
-      if (current?.toLowerCase() === target.toLowerCase()) return;
-    } catch {
-      // fall through
-    }
-    throw new Error(
-      "Could not add Arc to your wallet. Add chain 5042 manually, then try again."
-    );
   }
+
+  // Rainbow / some wallets add then still need an explicit switch.
+  try {
+    await provider.request({
+      method: "wallet_switchEthereumChain",
+      params: [{ chainId: target }],
+    });
+  } catch {
+    // ignore — verify below
+  }
+
+  const finalId = await readChainId();
+  if (finalId?.toLowerCase() === target.toLowerCase()) return;
+
+  throw new Error(
+    "Could not switch to Arc. In your wallet, add/select Arc (chain 5042), then try again."
+  );
 }
 
 /**

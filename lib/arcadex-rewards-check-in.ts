@@ -1,9 +1,8 @@
 "use client";
 
 import type { Hash, Hex } from "viem";
-import { arcChain } from "@/lib/arc-chain";
 import { waitForArcTransactionReceipt } from "@/lib/arc-public-client";
-import { createInjectedWalletClient, prepareWalletForArcTx } from "@/lib/wallet";
+import { sendArcContractWrite } from "@/lib/arc-send";
 import {
   ARCADEX_REWARDS_ABI,
   ARCADEX_REWARDS_CONTRACT_ADDRESS,
@@ -12,11 +11,8 @@ import {
 } from "@/lib/arcadex-rewards";
 
 /**
- * wallet write of ArcadeXRewards.checkIn
- * (campaigns without eligibility use deadline=0, signature=0x).
- *
- * Returns the tx hash even when local receipt polling flakes — `/api/streak/sync`
- * re-verifies on the server so an explorer-confirmed check-in still unlocks the app.
+ * ArcadeXRewards.checkIn — daily streak / app sign-in on Arc.
+ * Sync with `/api/streak/sync` after this returns.
  */
 export async function checkInOnChain(
   campaignId: number = DEFAULT_STREAK_CAMPAIGN_ID,
@@ -26,33 +22,18 @@ export async function checkInOnChain(
     throw new Error("ArcadeXRewards is not configured yet.");
   }
 
-  await prepareWalletForArcTx();
-
-  const walletClient = createInjectedWalletClient();
-  if (!walletClient) {
-    throw new Error("Connect a wallet to check in.");
-  }
-
-  const [account] = await walletClient.getAddresses();
-  if (!account) {
-    throw new Error("No wallet account available.");
-  }
-
-  // Campaigns without requireEligibility ignore these (pass 0 / 0x).
   const deadline = opts?.deadline ?? BigInt(0);
   const signature = opts?.signature ?? ("0x" as Hex);
 
-  const hash = await walletClient.writeContract({
-    account,
-    chain: arcChain,
+  const { txHash } = await sendArcContractWrite({
     address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
-    abi: ARCADEX_REWARDS_ABI,
+    abi: ARCADEX_REWARDS_ABI as import("viem").Abi,
     functionName: "checkIn",
     args: [BigInt(campaignId), deadline, signature],
   });
 
   try {
-    const receipt = await waitForArcTransactionReceipt(hash);
+    const receipt = await waitForArcTransactionReceipt(txHash);
     if (receipt.status !== "success") {
       throw new Error("Check-in transaction failed.");
     }
@@ -63,8 +44,8 @@ export async function checkInOnChain(
     ) {
       throw err;
     }
-    // Tx was submitted — sync endpoint verifies the receipt server-side.
+    // Submitted — `/api/streak/sync` re-verifies server-side.
   }
 
-  return { txHash: hash };
+  return { txHash };
 }

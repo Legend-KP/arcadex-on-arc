@@ -1,8 +1,7 @@
-import type { Address, Hash, Hex } from "viem";
+import type { Address, Hash, Hex, Abi } from "viem";
 import { keccak256, toBytes } from "viem";
-import { arcChain } from "@/lib/arc-chain";
 import { waitForArcTransactionReceipt } from "@/lib/arc-public-client";
-import { createInjectedWalletClient, prepareWalletForArcTx } from "@/lib/wallet";
+import { sendArcContractWrite } from "@/lib/arc-send";
 
 /** ArcadeXTxHub on Arc mainnet — set after deploy. Free signIn + USDC pay purposes. */
 export const ARCADEX_TX_HUB_CONTRACT_ADDRESS = (
@@ -381,29 +380,15 @@ export async function signInOnChain(purpose: Hex): Promise<{ txHash: Hash }> {
     throw new Error("ArcadeXTxHub is not configured yet.");
   }
 
-  await prepareWalletForArcTx();
-
-  const walletClient = createInjectedWalletClient();
-  if (!walletClient) {
-    throw new Error("Connect a wallet to continue.");
-  }
-
-  const [account] = await walletClient.getAddresses();
-  if (!account) {
-    throw new Error("No wallet account available.");
-  }
-
-  const hash = await walletClient.writeContract({
-    account,
-    chain: arcChain,
+  const { txHash } = await sendArcContractWrite({
     address: ARCADEX_TX_HUB_CONTRACT_ADDRESS,
-    abi: ARCADEX_TX_HUB_ABI,
+    abi: ARCADEX_TX_HUB_ABI as Abi,
     functionName: "signIn",
     args: [purpose],
   });
 
   try {
-    const receipt = await waitForArcTransactionReceipt(hash);
+    const receipt = await waitForArcTransactionReceipt(txHash);
     if (receipt.status !== "success") {
       throw new Error("Sign-in transaction failed.");
     }
@@ -414,8 +399,7 @@ export async function signInOnChain(purpose: Hex): Promise<{ txHash: Hash }> {
     ) {
       throw err;
     }
-    // Tx was submitted — chain confirmation may still land.
   }
 
-  return { txHash: hash };
+  return { txHash };
 }
