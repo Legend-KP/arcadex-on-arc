@@ -216,7 +216,8 @@ export async function sendArcContractWrite(options: {
   try {
     const hash = await walletClient.writeContract({
       account: account as Account,
-      // Do not pass chain — avoids injecting chainId into wallet payloads (Rainbow/MM).
+      // Explicit null — avoids injecting chainId into wallet payloads (Rainbow/MM).
+      chain: null,
       address: to,
       abi: options.abi,
       functionName: options.functionName,
