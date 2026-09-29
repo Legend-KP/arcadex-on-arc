@@ -447,6 +447,39 @@ export async function getArcMaxFeePerGas(): Promise<bigint> {
   });
 }
 
+/**
+ * Native Arc balance via eth_getBalance — **18 decimals** (gas currency).
+ * Do NOT confuse with ERC-20 USDC at 0x3600… which uses 6 decimals.
+ */
+export async function getArcNativeBalance(address: Address): Promise<bigint> {
+  return withArcRpcRetry(async (client) => {
+    return client.getBalance({ address, blockTag: "latest" });
+  });
+}
+
+/**
+ * Confirm a tx via eth_getTransactionReceipt on our RPC proxy/upstreams.
+ * Do not rely on explorer.arc.io (may be gated / delayed).
+ */
+export async function confirmArcTxViaRpc(
+  hash: Hash
+): Promise<TransactionReceipt | null> {
+  for (const rpcUrl of [
+    typeof window !== "undefined" ? getBrowserArcRpcUrl() : getRpcUrls()[0]!,
+    ...getRpcUrls(),
+  ]) {
+    try {
+      const receipt = await createHttpClient(rpcUrl).getTransactionReceipt({
+        hash,
+      });
+      if (receipt) return receipt;
+    } catch {
+      // try next
+    }
+  }
+  return null;
+}
+
 /** @deprecated CIP-64 fee currency is Celo-only; returns Arc maxFeePerGas floor. */
 export async function getCeloFeeCurrencyGasPrice(
   _feeCurrency?: Address
@@ -519,22 +552,15 @@ export async function waitForArcTransactionReceipt(
     }
   }
 
-  // Last resort: poll getTransactionReceipt across RPCs (tx may already be mined).
-  for (const rpcUrl of getRpcUrls()) {
-    try {
-      const receipt = await createHttpClient(rpcUrl).getTransactionReceipt({
-        hash,
-      });
-      if (receipt) return receipt;
-    } catch (error) {
-      lastError = error;
-      if (!isTransientReceiptError(error)) throw error;
-    }
-  }
+  // Last resort: poll getTransactionReceipt across RPCs (do not rely on explorer).
+  const polled = await confirmArcTxViaRpc(hash);
+  if (polled) return polled;
 
   throw lastError instanceof Error
     ? lastError
-    : new Error("Could not confirm the transaction on Arc.");
+    : new Error(
+        "Could not confirm the transaction via Arc RPC (explorer is not required). Wait a few seconds and refresh."
+      );
 }
 
 

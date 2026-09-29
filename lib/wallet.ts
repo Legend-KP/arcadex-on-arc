@@ -8,6 +8,7 @@ import { arcChain } from "@/lib/arc-chain";
 import {
   ensureArcChain,
   getPreferredInjectedProvider,
+  startEip6963Discovery,
   type InjectedProvider,
 } from "@/lib/arc-wallet";
 
@@ -19,7 +20,11 @@ declare global {
   }
 }
 
-/** True when any injected EIP-1193 provider is available (MetaMask, Coinbase, Rabby, etc.). */
+if (typeof window !== "undefined") {
+  startEip6963Discovery();
+}
+
+/** True when any injected EIP-1193 / EIP-6963 provider is available. */
 export function hasInjectedWallet(): boolean {
   return typeof window !== "undefined" && Boolean(getInjectedProvider());
 }
@@ -39,8 +44,7 @@ export function createInjectedWalletClient(): WalletClient | null {
 }
 
 /**
- * Ensure the connected wallet is on Arc before a write.
- * No-op if no provider (caller should already require a wallet).
+ * Ensure the connected wallet is on Arc Mainnet before a write.
  */
 export async function prepareWalletForArcTx(): Promise<void> {
   const provider = getInjectedProvider();

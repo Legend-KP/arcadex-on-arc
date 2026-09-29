@@ -1,4 +1,5 @@
 import {
+  formatEther,
   formatUnits,
   getAddress,
   type Abi,
@@ -7,11 +8,14 @@ import {
 } from "viem";
 import {
   formatChainError,
+  getArcNativeBalance,
   readArcContract,
   readArcContractValue,
   waitForArcTransactionReceipt,
 } from "@/lib/arc-public-client";
 import {
+  ARC_DEFAULT_TRANSFER_GAS,
+  ARC_MIN_NATIVE_GAS_WEI,
   prepareArcWalletAccount,
   sendArcUsdcTransfer,
 } from "@/lib/arc-send";
@@ -22,10 +26,10 @@ import {
   type SparkRefillPaymentToken,
 } from "@/lib/spark-refill";
 
-/** Fixed gas limit for ERC-20 transfer into payment contracts. */
-const TRANSFER_GAS_LIMIT = BigInt(120_000);
-
-async function readBalance(token: Address, account: Address): Promise<bigint> {
+async function readErc20Balance(
+  token: Address,
+  account: Address
+): Promise<bigint> {
   return readArcContract({
     address: token,
     abi: ERC20_ABI,
@@ -34,16 +38,33 @@ async function readBalance(token: Address, account: Address): Promise<bigint> {
   });
 }
 
-async function requireUsdcBalance(
+/**
+ * Payment amount uses ERC-20 USDC (6 decimals).
+ * Separately require native eth_getBalance (18 decimals) for gas.
+ */
+async function requireBalancesForPayment(
   account: Address,
   fee: bigint
 ): Promise<SparkRefillPaymentToken> {
-  const usdcBalance = await readBalance(ARC_USDC_TOKEN_ADDRESS, account);
+  const [erc20Balance, nativeGas] = await Promise.all([
+    readErc20Balance(ARC_USDC_TOKEN_ADDRESS, account),
+    getArcNativeBalance(account),
+  ]);
 
-  if (usdcBalance >= fee) return "USDC";
+  if (nativeGas < ARC_MIN_NATIVE_GAS_WEI) {
+    throw new Error(
+      `Not enough native USDC for gas (need ~0.02, have ${formatEther(nativeGas)}). Fund Arc Mainnet gas.`
+    );
+  }
 
-  const needed = formatUnits(fee, STABLECOIN_DECIMALS);
-  throw new Error(`Insufficient USDC balance. You need $${needed} USDC.`);
+  if (erc20Balance < fee) {
+    const needed = formatUnits(fee, STABLECOIN_DECIMALS);
+    throw new Error(
+      `Insufficient ERC-20 USDC for payment. You need $${needed} USDC (6 decimals).`
+    );
+  }
+
+  return "USDC";
 }
 
 function isUserRejection(error: unknown): boolean {
@@ -139,7 +160,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
   );
 
   const token = await runStage("balance", () =>
-    requireUsdcBalance(account, fee)
+    requireBalancesForPayment(account, fee)
   );
 
   let payHash: Hash;
@@ -148,13 +169,13 @@ export async function purchaseStablecoinFeeOnChain(options: {
       token: getAddress(ARC_USDC_TOKEN_ADDRESS),
       to: getAddress(contractAddress),
       amount: fee,
-      gas: TRANSFER_GAS_LIMIT,
+      gas: ARC_DEFAULT_TRANSFER_GAS,
     });
     payHash = sent.txHash;
   } catch (error) {
     throw toFriendlyError(
       error,
-      `${failError} Switch your wallet to Arc (chain 5042) and try again.`
+      `${failError} Switch your wallet to Arc Mainnet (5042) and try again.`
     );
   }
 
@@ -164,7 +185,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
 
   if (payReceipt.status !== "success") {
     throw new Error(
-      `${failError} The transfer was rejected on-chain. Keep a little extra USDC for network fees.`
+      `${failError} The transfer was rejected on-chain. Keep a little extra native USDC for gas.`
     );
   }
 

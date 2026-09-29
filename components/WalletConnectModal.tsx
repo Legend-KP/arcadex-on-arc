@@ -7,6 +7,7 @@ import {
   ARC_WALLET_OPTIONS,
   connectArcWallet,
   isWalletInstalled,
+  startEip6963Discovery,
   type ArcWalletId,
 } from "@/lib/arc-wallet";
 import { normalizeWalletAddress } from "@/lib/wallet-address";
@@ -41,6 +42,7 @@ export default function WalletConnectModal({
 
   useEffect(() => {
     setMounted(true);
+    startEip6963Discovery();
   }, []);
 
   useEffect(() => {
