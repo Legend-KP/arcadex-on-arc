@@ -33,6 +33,7 @@ import {
   unlockTestGame,
   verifyTestGamePassword,
 } from "@/lib/test-game-access";
+import { rememberRecentGame } from "@/lib/recent-games";
 
 export default function GamePageClient() {
   const { id } = useParams<{ id: string }>();
@@ -81,6 +82,10 @@ export default function GamePageClient() {
         if (cancelled) return;
 
         setGame(nextGame);
+
+        if (nextGame) {
+          rememberRecentGame(nextGame.id);
+        }
 
         if (nextGame && gameIsTest(nextGame)) {
           const unlocked = isTestGameUnlocked(nextGame.id);

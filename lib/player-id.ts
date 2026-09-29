@@ -53,3 +53,9 @@ export function clearCachedPlayerName(): void {
   localStorage.removeItem(PLAYER_NAME_KEY);
 }
 
+export function clearCachedWallet(): void {
+  if (typeof window === "undefined") return;
+  localStorage.removeItem(WALLET_KEY);
+  localStorage.removeItem(PLAYER_ID_KEY);
+}
+

@@ -1,9 +1,13 @@
 import { injected } from "@wagmi/core";
 import { createConfig, http } from "wagmi";
-import { ARC_DEFAULT_RPC_URL, arcChain } from "@/lib/arc-chain";
+import { arcChain } from "@/lib/arc-chain";
+import { getArcUpstreamRpcUrls, getBrowserArcRpcUrl } from "@/lib/arc-rpc";
 
+/** Browser → same-origin proxy; server → upstream Arc RPC. */
 const rpcUrl =
-  process.env.NEXT_PUBLIC_ARC_RPC_URL?.trim() || ARC_DEFAULT_RPC_URL;
+  typeof window !== "undefined"
+    ? getBrowserArcRpcUrl()
+    : getArcUpstreamRpcUrls()[0]!;
 
 export const wagmiConfig = createConfig({
   chains: [arcChain],
@@ -13,7 +17,7 @@ export const wagmiConfig = createConfig({
     }),
   ],
   transports: {
-    [arcChain.id]: http(rpcUrl),
+    [arcChain.id]: http(rpcUrl, { timeout: 12_000 }),
   },
   ssr: true,
 });

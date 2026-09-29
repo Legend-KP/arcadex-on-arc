@@ -37,6 +37,7 @@ import {
 } from "@/lib/player-profile-client";
 import {
   clearCachedPlayerName,
+  clearCachedWallet,
   clearInvalidCachedWallet,
   clearStaleGuestId,
   getCachedPlayerName,
@@ -79,6 +80,10 @@ interface PlayerProfileContextValue {
   updateWalletAddress: (walletAddress: string) => Promise<void>;
   refreshStreakStatus: () => Promise<void>;
   openOnboarding: () => void;
+  /** Clear session and prompt wallet connect again. */
+  disconnectWallet: () => void;
+  /** Log out current wallet and open the connect modal to pick another. */
+  changeWallet: () => void;
 }
 
 const PlayerProfileContext = createContext<PlayerProfileContextValue | null>(
@@ -478,6 +483,27 @@ export default function PlayerProfileProvider({
     [profile?.name]
   );
 
+  const disconnectWallet = useCallback(() => {
+    clearWalletSessionToken();
+    clearCachedWallet();
+    clearCachedPlayerName();
+    pendingWalletRef.current = null;
+    setWalletAddress("");
+    setPlayerId("");
+    setProfile(null);
+    setStreakStatus(null);
+    setShowCheckIn(false);
+    setShowModal(false);
+    setStreakBrokenDismissed(false);
+    setError("");
+    nameCompleteRef.current = false;
+    setShowWalletConnect(true);
+  }, []);
+
+  const changeWallet = useCallback(() => {
+    disconnectWallet();
+  }, [disconnectWallet]);
+
   const defaultName =
     profile?.name?.trim() || getCachedPlayerName()?.trim() || "";
 
@@ -541,6 +567,8 @@ export default function PlayerProfileProvider({
       updateWalletAddress,
       refreshStreakStatus,
       openOnboarding,
+      disconnectWallet,
+      changeWallet,
     }),
     [
       playerId,
@@ -552,6 +580,8 @@ export default function PlayerProfileProvider({
       updateWalletAddress,
       refreshStreakStatus,
       openOnboarding,
+      disconnectWallet,
+      changeWallet,
     ]
   );
 

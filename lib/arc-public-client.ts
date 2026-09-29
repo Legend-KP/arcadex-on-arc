@@ -7,23 +7,16 @@ import {
   type TransactionReceipt,
 } from "viem";
 import {
-  ARC_DEFAULT_RPC_URL,
   ARC_MIN_MAX_FEE_PER_GAS_WEI,
   arcChain,
 } from "@/lib/arc-chain";
-
-const DEFAULT_RPC_URLS = [
-  ARC_DEFAULT_RPC_URL,
-  "https://rpc.blockdaemon.mainnet.arc.io",
-  "https://rpc.drpc.mainnet.arc.io",
-] as const;
+import {
+  getArcUpstreamRpcUrls,
+  getBrowserArcRpcUrl,
+} from "@/lib/arc-rpc";
 
 function getRpcUrls(): string[] {
-  const primary = process.env.NEXT_PUBLIC_ARC_RPC_URL?.trim();
-  const urls = primary
-    ? [primary, ...DEFAULT_RPC_URLS.filter((url) => url !== primary)]
-    : [...DEFAULT_RPC_URLS];
-  return [...new Set(urls)];
+  return getArcUpstreamRpcUrls();
 }
 
 const publicClientConfig = {
@@ -45,9 +38,8 @@ let browserClient: ArcPublicClient | null = null;
 let browserClientIndex = 0;
 
 function createBrowserPublicClient(): ArcPublicClient {
-  const urls = getRpcUrls();
-  const url = urls[browserClientIndex % urls.length] ?? urls[0]!;
-  return createHttpClient(url);
+  // Always hit same-origin /api/rpc so ad blockers cannot kill Arc reads.
+  return createHttpClient(getBrowserArcRpcUrl());
 }
 
 /** Public client for browser-side chain reads (payments, balances). */
@@ -60,7 +52,7 @@ export function getArcPublicClient(): ArcPublicClient {
   return createHttpClient(getRpcUrls()[0]!);
 }
 
-/** Reset cached browser client and rotate to the next RPC URL. */
+/** Reset cached browser client (proxy is sticky; index kept for server failover helpers). */
 export function resetArcPublicClient(): void {
   browserClient = null;
   const urls = getRpcUrls();
@@ -139,7 +131,11 @@ function isTransientRpcError(error: unknown): boolean {
     message.includes("429") ||
     message.includes("rate limit") ||
     message.includes("503") ||
-    message.includes("502")
+    message.includes("502") ||
+    message.includes("http request failed") ||
+    message.includes("failed to fetch") ||
+    message.includes("blocked_by_client") ||
+    message.includes("err_blocked")
   );
 }
 
@@ -264,6 +260,7 @@ function shortChainErrorMessage(error: unknown): string | null {
     withoutViemFooter.length > 0 &&
     withoutViemFooter.length <= 180 &&
     !withoutViemFooter.toLowerCase().includes("rpc request failed") &&
+    !withoutViemFooter.toLowerCase().includes("http request failed") &&
     !/reverted with the following (?:reason|signature):\s*$/i.test(withoutViemFooter)
   ) {
     return withoutViemFooter;
@@ -306,6 +303,17 @@ export function formatChainError(error: unknown): string {
 
   if (isUserFacingRejection(error)) {
     return "Payment cancelled in wallet.";
+  }
+
+  const lower = text.toLowerCase();
+  if (
+    lower.includes("http request failed") ||
+    lower.includes("failed to fetch") ||
+    lower.includes("blocked_by_client") ||
+    lower.includes("err_blocked") ||
+    lower.includes("load failed")
+  ) {
+    return "Could not reach Arc. Disable ad blockers for this site and try again.";
   }
 
   const short = shortChainErrorMessage(error);
