@@ -7,7 +7,6 @@ import type { EIP1193Provider } from "viem";
 import {
   ARC_CHAIN_ID,
   ARC_DEFAULT_RPC_URL,
-  arcChain,
 } from "@/lib/arc-chain";
 
 export type ArcWalletId =
@@ -244,24 +243,41 @@ export async function ensureArcChain(
   const rpcUrl =
     process.env.NEXT_PUBLIC_ARC_RPC_URL?.trim() || ARC_DEFAULT_RPC_URL;
 
-  await provider.request({
-    method: "wallet_addEthereumChain",
-    params: [
-      {
-        chainId: target,
-        chainName: arcChain.name,
-        nativeCurrency: {
-          name: arcChain.nativeCurrency.name,
-          symbol: arcChain.nativeCurrency.symbol,
-          decimals: arcChain.nativeCurrency.decimals,
+  try {
+    await provider.request({
+      method: "wallet_addEthereumChain",
+      params: [
+        {
+          chainId: target,
+          chainName: "Arc",
+          nativeCurrency: {
+            name: "USDC",
+            symbol: "USDC",
+            decimals: 18,
+          },
+          rpcUrls: [rpcUrl],
+          blockExplorerUrls: ["https://explorer.arc.io"],
         },
-        rpcUrls: [rpcUrl],
-        blockExplorerUrls: arcChain.blockExplorers?.default?.url
-          ? [arcChain.blockExplorers.default.url]
-          : ["https://explorer.arc.io"],
-      },
-    ],
-  });
+      ],
+    });
+  } catch (err) {
+    // Already on Arc / user rejected / wallet already has the chain
+    const msg = err instanceof Error ? err.message : String(err);
+    if (/reject|denied|cancel/i.test(msg)) {
+      throw new Error("Switch to Arc was cancelled in your wallet.");
+    }
+    try {
+      const current = (await provider.request({
+        method: "eth_chainId",
+      })) as string;
+      if (current?.toLowerCase() === target.toLowerCase()) return;
+    } catch {
+      // fall through
+    }
+    throw new Error(
+      "Could not add Arc to your wallet. Add chain 5042 manually, then try again."
+    );
+  }
 }
 
 /**

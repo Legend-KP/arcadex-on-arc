@@ -7,11 +7,14 @@ import {
   type Address,
   type Hash,
 } from "viem";
-import { ARC_MIN_MAX_FEE_PER_GAS_WEI, arcChain } from "@/lib/arc-chain";
+import {
+  ARC_CHAIN_ID,
+  ARC_MIN_MAX_FEE_PER_GAS_WEI,
+  arcChain,
+} from "@/lib/arc-chain";
 import {
   formatChainError,
   getArcMaxFeePerGas,
-  getArcTransactionCount,
   readArcContract,
   readArcContractValue,
   waitForArcTransactionReceipt,
@@ -30,6 +33,9 @@ import {
 
 /** Fixed gas limit for ERC-20 transfer into payment contracts. */
 const TRANSFER_GAS_LIMIT = BigInt(120_000);
+
+/** Small EIP-1559 tip — Arc accepts 0; 1 Gwei improves inclusion. */
+const ARC_PRIORITY_FEE_WEI = BigInt(1_000_000_000);
 
 /** Set true only while diagnosing payment failures. */
 const DEBUG_PAYMENTS = false;
@@ -223,13 +229,15 @@ async function runStage<T>(stage: string, fn: () => Promise<T>): Promise<T> {
  * Fully-prepared eth_sendTransaction — wallet only signs/sends.
  * Gas is native USDC on Arc; CIP-64 feeCurrency is not used.
  * maxFeePerGas is floored at 20 Gwei (Arc mempool drop threshold).
+ *
+ * Do NOT pre-fill nonce — MetaMask often returns
+ * "Invalid parameters were provided to the RPC method" when dapps supply it.
  */
 async function sendViaInjectedProvider(options: {
   account: Address;
   tokenAddr: Address;
   data: `0x${string}`;
   maxFeePerGas: bigint;
-  nonce: number;
 }): Promise<Hash> {
   const provider = getInjectedProvider();
   if (!provider) {
@@ -240,16 +248,19 @@ async function sendViaInjectedProvider(options: {
     options.maxFeePerGas > ARC_MIN_MAX_FEE_PER_GAS_WEI
       ? options.maxFeePerGas
       : ARC_MIN_MAX_FEE_PER_GAS_WEI;
+  const maxPriority =
+    ARC_PRIORITY_FEE_WEI < maxFee ? ARC_PRIORITY_FEE_WEI : maxFee;
 
   const tx = {
     from: options.account,
     to: options.tokenAddr,
     data: options.data,
     value: "0x0",
+    chainId: toHex(ARC_CHAIN_ID),
+    type: "0x2",
     gas: toHex(TRANSFER_GAS_LIMIT),
     maxFeePerGas: toHex(maxFee),
-    maxPriorityFeePerGas: toHex(maxFee),
-    nonce: toHex(options.nonce),
+    maxPriorityFeePerGas: toHex(maxPriority),
   };
 
   const txHash = await provider.request({
@@ -314,7 +325,6 @@ export async function purchaseStablecoinFeeOnChain(options: {
   const recipient = getAddress(contractAddress);
 
   const maxFeePerGas = await runStage("gasPrice", () => getArcMaxFeePerGas());
-  const nonce = await runStage("nonce", () => getArcTransactionCount(account));
 
   const data = encodeFunctionData({
     abi: ERC20_ABI,
@@ -331,8 +341,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
       fee: fee.toString(),
       gas: TRANSFER_GAS_LIMIT.toString(),
       maxFeePerGas: maxFeePerGas.toString(),
-      nonce,
-      note: "Arc USDC-only; no CIP-64 feeCurrency",
+      note: "Arc USDC-only; wallet fills nonce",
     });
   }
 
@@ -345,7 +354,6 @@ export async function purchaseStablecoinFeeOnChain(options: {
       tokenAddr,
       data,
       maxFeePerGas,
-      nonce,
     });
   } catch (error) {
     providerError = error;
@@ -354,30 +362,66 @@ export async function purchaseStablecoinFeeOnChain(options: {
       throw new Error("Payment cancelled in wallet.");
     }
 
+    // Retry once with a leaner payload (no type/chainId) — some wallets reject extras.
     try {
-      const feeCap =
+      const provider = getInjectedProvider();
+      if (!provider) throw error;
+      const maxFee =
         maxFeePerGas > ARC_MIN_MAX_FEE_PER_GAS_WEI
           ? maxFeePerGas
           : ARC_MIN_MAX_FEE_PER_GAS_WEI;
-      payHash = await walletClient.writeContract({
-        account,
-        chain: arcChain,
-        address: tokenAddr,
-        abi: ERC20_ABI,
-        functionName: "transfer",
-        args: [recipient, fee],
-        gas: TRANSFER_GAS_LIMIT,
-        maxFeePerGas: feeCap,
-        maxPriorityFeePerGas: feeCap,
-        nonce,
+      const maxPriority =
+        ARC_PRIORITY_FEE_WEI < maxFee ? ARC_PRIORITY_FEE_WEI : maxFee;
+      const leanHash = await provider.request({
+        method: "eth_sendTransaction",
+        params: [
+          {
+            from: account,
+            to: tokenAddr,
+            data,
+            value: "0x0",
+            gas: toHex(TRANSFER_GAS_LIMIT),
+            maxFeePerGas: toHex(maxFee),
+            maxPriorityFeePerGas: toHex(maxPriority),
+          } as never,
+        ],
       });
-    } catch (writeError) {
-      logRawError("writeContract", writeError);
-      throw toFriendlyError(
-        writeError ?? providerError,
-        `${failError} Wallet could not open the payment sheet.`,
-        "writeContract"
-      );
+      if (typeof leanHash !== "string" || !leanHash.startsWith("0x")) {
+        throw new Error("Wallet did not return a transaction hash.");
+      }
+      payHash = leanHash as Hash;
+    } catch (leanError) {
+      logRawError("eth_sendTransaction_lean", leanError);
+      if (isUserRejection(leanError)) {
+        throw new Error("Payment cancelled in wallet.");
+      }
+
+      try {
+        const feeCap =
+          maxFeePerGas > ARC_MIN_MAX_FEE_PER_GAS_WEI
+            ? maxFeePerGas
+            : ARC_MIN_MAX_FEE_PER_GAS_WEI;
+        const tip =
+          ARC_PRIORITY_FEE_WEI < feeCap ? ARC_PRIORITY_FEE_WEI : feeCap;
+        payHash = await walletClient.writeContract({
+          account,
+          chain: arcChain,
+          address: tokenAddr,
+          abi: ERC20_ABI,
+          functionName: "transfer",
+          args: [recipient, fee],
+          gas: TRANSFER_GAS_LIMIT,
+          maxFeePerGas: feeCap,
+          maxPriorityFeePerGas: tip,
+        });
+      } catch (writeError) {
+        logRawError("writeContract", writeError);
+        throw toFriendlyError(
+          writeError ?? leanError ?? providerError,
+          `${failError} Wallet could not open the payment sheet.`,
+          "writeContract"
+        );
+      }
     }
   }
 

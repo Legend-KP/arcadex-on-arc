@@ -307,6 +307,13 @@ export function formatChainError(error: unknown): string {
 
   const lower = text.toLowerCase();
   if (
+    lower.includes("invalid parameters were provided") ||
+    lower.includes("invalid params") ||
+    (lower.includes("invalid parameters") && lower.includes("rpc"))
+  ) {
+    return "Wallet rejected the transaction params. Make sure you are on Arc and try again.";
+  }
+  if (
     lower.includes("http request failed") ||
     lower.includes("failed to fetch") ||
     lower.includes("blocked_by_client") ||

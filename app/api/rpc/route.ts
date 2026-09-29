@@ -129,7 +129,8 @@ export async function POST(request: Request) {
   }
 
   return new NextResponse(result.text, {
-    status: result.status >= 200 && result.status < 600 ? result.status : 200,
+    // Always 200 so viem/wallets parse JSON-RPC errors in-body (not as HTTP failures).
+    status: 200,
     headers: {
       "content-type": "application/json",
       "cache-control": "no-store",
