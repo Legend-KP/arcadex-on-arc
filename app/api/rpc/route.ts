@@ -1,8 +1,6 @@
 import { NextResponse } from "next/server";
 import { getArcUpstreamRpcUrls } from "@/lib/arc-rpc";
 
-export const runtime = "edge";
-
 const ALLOWED_METHOD =
   /^(eth_|net_|web3_clientVersion$|web3_sha3$)/i;
 
