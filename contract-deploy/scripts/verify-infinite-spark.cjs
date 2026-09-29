@@ -2,14 +2,12 @@ const fs = require("fs");
 const path = require("path");
 const https = require("https");
 
-const ADDRESS = "0x2a9f38b41035a900d5038D1972955011fb3278E7";
-const CHAIN_ID = 5042;
-const TX_HASH =
-  "0x7a9f03c05425a05f12025849574f27f9f78140e16b99a48d1abd187a173691c8";
-const BUILD_INFO = path.resolve(
+const DEPLOYMENT_FILE = path.resolve(
   __dirname,
-  "../artifacts/build-info/00b5b87980d36aac0ec2f276e2557635.json"
+  "../../deployments/infinite-spark-arc-mainnet.json"
 );
+const CONTRACT_IDENTIFIER = "contracts/InfiniteSpark.sol:InfiniteSpark";
+const CHAIN_ID = 5042;
 
 require("dotenv").config({ path: path.resolve(__dirname, "../../.env") });
 
@@ -72,21 +70,42 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-function loadBuildInfo() {
-  return JSON.parse(fs.readFileSync(BUILD_INFO, "utf8"));
+function loadDeployment() {
+  if (!fs.existsSync(DEPLOYMENT_FILE)) {
+    throw new Error(`Deployment file not found: ${DEPLOYMENT_FILE}`);
+  }
+  return JSON.parse(fs.readFileSync(DEPLOYMENT_FILE, "utf8"));
 }
 
-async function verifyOnSourcify() {
-  const buildInfo = loadBuildInfo();
+function findBuildInfo() {
+  const buildInfoDir = path.resolve(__dirname, "../artifacts/build-info");
+  const files = fs
+    .readdirSync(buildInfoDir)
+    .filter((file) => file.endsWith(".json"))
+    .map((file) => path.join(buildInfoDir, file))
+    .sort((a, b) => fs.statSync(b).mtimeMs - fs.statSync(a).mtimeMs);
+
+  for (const file of files) {
+    const buildInfo = JSON.parse(fs.readFileSync(file, "utf8"));
+    if (buildInfo.input?.sources?.["contracts/InfiniteSpark.sol"]) {
+      return buildInfo;
+    }
+  }
+
+  throw new Error("No build-info artifact found for contracts/InfiniteSpark.sol");
+}
+
+async function verifyOnSourcify(address, txHash) {
+  const buildInfo = findBuildInfo();
   const payload = {
     stdJsonInput: buildInfo.input,
     compilerVersion: buildInfo.solcLongVersion,
-    contractIdentifier: "contracts/InfiniteSpark.sol:InfiniteSpark",
-    creationTransactionHash: TX_HASH,
+    contractIdentifier: CONTRACT_IDENTIFIER,
+    creationTransactionHash: txHash,
   };
 
   const submit = await postJson(
-    `https://sourcify.dev/server/v2/verify/${CHAIN_ID}/${ADDRESS}`,
+    `https://sourcify.dev/server/v2/verify/${CHAIN_ID}/${address}`,
     payload
   );
 
@@ -119,7 +138,7 @@ async function verifyOnSourcify() {
     const match = status.contract?.match;
     console.log("Sourcify status:", status.status || match || status);
 
-    if (match === "perfect" || match === "partial") {
+    if (match === "perfect" || match === "partial" || match === "exact_match" || match === "match" || status.status === "perfect" || status.status === "partial" || status.status === "exact_match" || status.status === "match" || status.status === "completed") {
       console.log("Verified on Sourcify.");
       return true;
     }
@@ -132,12 +151,12 @@ async function verifyOnSourcify() {
   throw new Error("Sourcify verification timed out");
 }
 
-async function verifyOnArc Explorer() {
+async function verifyOnExplorer(address) {
   if (!apiKey) {
     return false;
   }
 
-  const buildInfo = loadBuildInfo();
+  const buildInfo = findBuildInfo();
   const compilerVersion = buildInfo.solcLongVersion.startsWith("v")
     ? buildInfo.solcLongVersion
     : `v${buildInfo.solcLongVersion}`;
@@ -147,10 +166,10 @@ async function verifyOnArc Explorer() {
     chainid: String(CHAIN_ID),
     module: "contract",
     action: "verifysourcecode",
-    contractaddress: ADDRESS,
+    contractaddress: address,
     sourceCode: JSON.stringify(buildInfo.input),
     codeformat: "solidity-standard-json-input",
-    contractname: "contracts/InfiniteSpark.sol:InfiniteSpark",
+    contractname: CONTRACT_IDENTIFIER,
     compilerversion: compilerVersion,
     optimizationUsed: "1",
     runs: "200",
@@ -188,7 +207,7 @@ async function verifyOnArc Explorer() {
     if (status.status === "1") {
       console.log(
         "Verified on Arc Explorer:",
-        `https://arc-explorer.io/address/${ADDRESS}#code`
+        `https://explorer.arc.io/address/${address}#code`
       );
       return true;
     }
@@ -205,14 +224,14 @@ async function verifyOnArc Explorer() {
   throw new Error("Arc Explorer verification timed out");
 }
 
-async function checkArc ExplorerVerified() {
+async function checkExplorerVerified(address) {
   const res = await getJson(
     `https://api.etherscan.io/v2/api?` +
       new URLSearchParams({
         chainid: String(CHAIN_ID),
         module: "contract",
         action: "getabi",
-        address: ADDRESS,
+        address,
         ...(apiKey ? { apikey: apiKey } : {}),
       }).toString()
   );
@@ -220,26 +239,55 @@ async function checkArc ExplorerVerified() {
   return res.status === "1" && res.result && res.result !== "Contract source code not verified";
 }
 
+function saveVerification(deployment, explorerUrl) {
+  const updated = {
+    ...deployment,
+    verified: true,
+    verifiedAt: new Date().toISOString(),
+    verification: {
+      explorer: explorerUrl,
+      sourcify: `https://sourcify.dev/#/lookup/${CHAIN_ID}/${deployment.address}`,
+    },
+  };
+  fs.writeFileSync(DEPLOYMENT_FILE, JSON.stringify(updated, null, 2));
+}
+
 async function main() {
-  if (await checkArc ExplorerVerified()) {
-    console.log("Already verified on Arc Explorer:", `https://arc-explorer.io/address/${ADDRESS}#code`);
+  const deployment = loadDeployment();
+  const { address, txHash } = deployment;
+
+  if (!address || !txHash) {
+    throw new Error("Deployment file must include address and txHash");
+  }
+
+  console.log("Verifying InfiniteSpark at", address);
+
+  if (await checkExplorerVerified(address)) {
+    const explorerUrl = `https://explorer.arc.io/address/${address}#code`;
+    console.log("Already verified on explorer:", explorerUrl);
+    saveVerification(deployment, explorerUrl);
     return;
   }
 
+  let explorerOk = false;
   if (apiKey) {
-    const arc-explorerOk = await verifyOnArc Explorer();
-    if (arc-explorerOk) return;
+    explorerOk = await verifyOnExplorer(address);
   } else {
     console.log("No ETHERSCAN_API_KEY — trying Sourcify, then Arc Explorer manual step.");
   }
 
-  await verifyOnSourcify();
+  if (!explorerOk) {
+    await verifyOnSourcify(address, txHash);
+  }
+
+  const explorerUrl = `https://explorer.arc.io/address/${address}#code`;
+  saveVerification(deployment, explorerUrl);
 
   if (!apiKey) {
     console.log("");
     console.log("Sourcify verification complete.");
     console.log(
-      "For Arc Explorer (recommended for explorers), add ETHERSCAN_API_KEY to .env and run:"
+      "For Arc Explorer, add ETHERSCAN_API_KEY to .env and run:"
     );
     console.log("  cd contract-deploy && npm run verify");
     console.log("Get a free key at https://etherscan.io/myapikey");

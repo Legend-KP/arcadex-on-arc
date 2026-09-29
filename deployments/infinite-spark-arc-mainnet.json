@@ -2,13 +2,19 @@
   "contract": "InfiniteSpark",
   "network": "arc-mainnet",
   "chainId": 5042,
-  "address": "",
+  "address": "0x54CfCe40CaeF51b986DAf9abbc0C6dea0fA40a35",
   "usdc": "0x3600000000000000000000000000000000000000",
   "usdcDecimals": 6,
-  "deployer": "",
-  "deployedAt": null,
-  "txHash": null,
-  "verified": false,
-  "note": "Placeholder \u2014 deploy with contract-deploy scripts on --network arc. Do not use Celo addresses.",
-  "fee": "100000"
+  "deployer": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+  "deployedAt": "2026-09-28T00:00:00.000Z",
+  "txHash": "0x5de25b50603c05298480e2ae772d41dbdd3ed1a91e1fe94928a0b40dc7b03071",
+  "verified": true,
+  "fee": "100000",
+  "explorer": "https://explorer.arc.io/address/0x54CfCe40CaeF51b986DAf9abbc0C6dea0fA40a35",
+  "verifiedAt": "2026-09-28T15:07:35.633Z",
+  "verification": {
+    "sourcify": "https://sourcify.dev/#/lookup/5042/0x54CfCe40CaeF51b986DAf9abbc0C6dea0fA40a35",
+    "explorer": "https://explorer.arc.io/address/0x54CfCe40CaeF51b986DAf9abbc0C6dea0fA40a35#code",
+    "explorerVerified": false
+  }
 }

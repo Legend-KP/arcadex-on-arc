@@ -40,7 +40,7 @@ module.exports = {
         network: "arc",
         chainId: 5042,
         urls: {
-          apiURL: "https://explorer.arc.io/api/v2",
+          apiURL: "https://explorer.arc.io/api",
           browserURL: "https://explorer.arc.io",
         },
       },
@@ -48,7 +48,7 @@ module.exports = {
         network: "arcTestnet",
         chainId: 5042002,
         urls: {
-          apiURL: "https://explorer.testnet.arc.io/api/v2",
+          apiURL: "https://explorer.testnet.arc.io/api",
           browserURL: "https://explorer.testnet.arc.io",
         },
       },

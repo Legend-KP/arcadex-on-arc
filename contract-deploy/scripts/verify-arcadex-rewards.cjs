@@ -157,7 +157,7 @@ async function verifyOnSourcify(address, txHash) {
     const match = status.contract?.match;
     console.log("Sourcify status:", status.status || match || status);
 
-    if (match === "perfect" || match === "partial" || match === "exact_match") {
+    if (match === "perfect" || match === "partial" || match === "exact_match" || match === "match" || status.status === "perfect" || status.status === "partial" || status.status === "exact_match" || status.status === "match" || status.status === "completed") {
       console.log("Verified on Sourcify.");
       return true;
     }
@@ -170,7 +170,7 @@ async function verifyOnSourcify(address, txHash) {
   throw new Error("Sourcify verification timed out");
 }
 
-async function verifyOnArc Explorer(address, deployment) {
+async function verifyOnExplorer(address, deployment) {
   if (!apiKey) {
     return false;
   }
@@ -227,7 +227,7 @@ async function verifyOnArc Explorer(address, deployment) {
     if (status.status === "1") {
       console.log(
         "Verified on Arc Explorer:",
-        `https://arc-explorer.io/address/${address}#code`
+        `https://explorer.arc.io/address/${address}#code`
       );
       return true;
     }
@@ -244,7 +244,7 @@ async function verifyOnArc Explorer(address, deployment) {
   throw new Error("Arc Explorer verification timed out");
 }
 
-async function checkArc ExplorerVerified(address) {
+async function checkExplorerVerified(address) {
   const res = await getJson(
     `https://api.etherscan.io/v2/api?` +
       new URLSearchParams({
@@ -263,13 +263,13 @@ async function checkArc ExplorerVerified(address) {
   );
 }
 
-function saveVerification(deployment, arc-explorerUrl) {
+function saveVerification(deployment, explorerUrl) {
   const updated = {
     ...deployment,
     verified: true,
     verifiedAt: new Date().toISOString(),
     verification: {
-      arc-explorer: arc-explorerUrl,
+      explorer: explorerUrl,
       sourcify: `https://sourcify.dev/#/lookup/${CHAIN_ID}/${deployment.address}`,
     },
   };
@@ -286,34 +286,34 @@ async function main() {
 
   console.log("Verifying ArcadeXRewards at", address);
 
-  if (await checkArc ExplorerVerified(address)) {
-    const arc-explorerUrl = `https://arc-explorer.io/address/${address}#code`;
-    console.log("Already verified on Arc Explorer:", arc-explorerUrl);
-    saveVerification(deployment, arc-explorerUrl);
+  if (await checkExplorerVerified(address)) {
+    const explorerUrl = `https://explorer.arc.io/address/${address}#code`;
+    console.log("Already verified on explorer:", explorerUrl);
+    saveVerification(deployment, explorerUrl);
     return;
   }
 
-  let arc-explorerOk = false;
+  let explorerOk = false;
   if (apiKey) {
-    arc-explorerOk = await verifyOnArc Explorer(address, deployment);
+    explorerOk = await verifyOnExplorer(address, deployment);
   } else {
     console.log(
       "No ETHERSCAN_API_KEY — trying Sourcify, then Arc Explorer manual step."
     );
   }
 
-  if (!arc-explorerOk) {
+  if (!explorerOk) {
     await verifyOnSourcify(address, txHash);
   }
 
-  const arc-explorerUrl = `https://arc-explorer.io/address/${address}#code`;
-  saveVerification(deployment, arc-explorerUrl);
+  const explorerUrl = `https://explorer.arc.io/address/${address}#code`;
+  saveVerification(deployment, explorerUrl);
 
   if (!apiKey) {
     console.log("");
     console.log("Sourcify verification complete.");
     console.log(
-      "For Arc Explorer (recommended for explorers), add ETHERSCAN_API_KEY to .env and run:"
+      "For Arc Explorer, add ETHERSCAN_API_KEY to .env and run:"
     );
     console.log("  cd contract-deploy && npm run verify:arcadex-rewards");
   }

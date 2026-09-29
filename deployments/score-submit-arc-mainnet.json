@@ -2,13 +2,19 @@
   "contract": "ScoreSubmit",
   "network": "arc-mainnet",
   "chainId": 5042,
-  "address": "",
+  "address": "0x393A322846Cb9b95E9aFC6521e727Cf6C8af8501",
   "usdc": "0x3600000000000000000000000000000000000000",
   "usdcDecimals": 6,
-  "deployer": "",
-  "deployedAt": null,
-  "txHash": null,
-  "verified": false,
-  "note": "Placeholder \u2014 deploy with contract-deploy scripts on --network arc. Do not use Celo addresses.",
-  "fee": "50000"
+  "deployer": "0x11015f39Ac7389201aEc778Be8e3D84f2aF44A70",
+  "deployedAt": "2026-09-28T00:00:00.000Z",
+  "txHash": "0xce24f82f4963e6901220d98e8bdc5a02fba16d01768b55023030f99e482a52ab",
+  "verified": true,
+  "fee": "50000",
+  "explorer": "https://explorer.arc.io/address/0x393A322846Cb9b95E9aFC6521e727Cf6C8af8501",
+  "verifiedAt": "2026-09-28T15:07:31.605Z",
+  "verification": {
+    "sourcify": "https://sourcify.dev/#/lookup/5042/0x393A322846Cb9b95E9aFC6521e727Cf6C8af8501",
+    "explorer": "https://explorer.arc.io/address/0x393A322846Cb9b95E9aFC6521e727Cf6C8af8501#code",
+    "explorerVerified": false
+  }
 }

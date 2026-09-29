@@ -16,7 +16,8 @@
     "verify:score-submit": "node scripts/verify-score-submit.cjs",
     "verify:infinite-spark": "node scripts/verify-infinite-spark.cjs",
     "verify:arcadex-rewards": "node scripts/verify-arcadex-rewards.cjs",
-    "verify:arcadex-tx-hub": "node scripts/verify-arcadex-tx-hub.cjs"
+    "verify:arcadex-tx-hub": "node scripts/verify-arcadex-tx-hub.cjs",
+    "verify:all": "node scripts/verify-all-arc.cjs"
   },
   "devDependencies": {
     "@nomicfoundation/hardhat-toolbox": "^6.1.2",
