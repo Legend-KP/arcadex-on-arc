@@ -1,5 +1,4 @@
 import { defineChain } from "viem";
-import { arc as viemArc } from "viem/chains";
 
 /** Arc mainnet chain id (must match eth_chainId 0x13b2). Never use testnet 5042002. */
 export const ARC_CHAIN_ID = 5042;
@@ -21,21 +20,22 @@ export const ARC_DEFAULT_RPC_URL = "https://rpc.mainnet.arc.io";
  */
 export const ARC_MIN_MAX_FEE_PER_GAS_WEI = BigInt(20_000_000_000);
 
-/** Prefer the viem built-in `arc` chain; fall back if an older viem is installed. */
-export const arcChain =
-  viemArc ??
-  defineChain({
-    id: ARC_CHAIN_ID,
-    name: "Arc",
-    nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
-    rpcUrls: {
-      default: { http: [ARC_DEFAULT_RPC_URL] },
+/**
+ * Define Arc locally — avoid `import { arc } from "viem/chains"` which pulls
+ * the full chains index and triggers the ox/tempo webpack warning.
+ */
+export const arcChain = defineChain({
+  id: ARC_CHAIN_ID,
+  name: "Arc",
+  nativeCurrency: { name: "USDC", symbol: "USDC", decimals: 18 },
+  rpcUrls: {
+    default: { http: [ARC_DEFAULT_RPC_URL] },
+  },
+  blockExplorers: {
+    default: {
+      name: "Arc Explorer",
+      url: "https://explorer.arc.io",
+      apiUrl: "https://explorer.arc.io/api/v2",
     },
-    blockExplorers: {
-      default: {
-        name: "Arc Explorer",
-        url: "https://explorer.arc.io",
-        apiUrl: "https://explorer.arc.io/api/v2",
-      },
-    },
-  });
+  },
+});
