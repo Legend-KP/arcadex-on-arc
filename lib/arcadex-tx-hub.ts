@@ -3,9 +3,13 @@ import { keccak256, toBytes } from "viem";
 import { waitForArcTransactionReceipt } from "@/lib/arc-public-client";
 import { sendArcContractWrite } from "@/lib/arc-send";
 
-/** ArcadeXTxHub on Arc mainnet — set after deploy. Free signIn + USDC pay purposes. */
+/** ArcadeXTxHub on Arc mainnet — fallback if NEXT_PUBLIC_* missing at build time. */
+const ARC_MAINNET_TX_HUB =
+  "0x5282cbB845006F9ecE9d042153A6C4Dc806347aa" as const;
+
 export const ARCADEX_TX_HUB_CONTRACT_ADDRESS = (
-  process.env.NEXT_PUBLIC_ARCADEX_TX_HUB_CONTRACT?.trim() || ""
+  process.env.NEXT_PUBLIC_ARCADEX_TX_HUB_CONTRACT?.trim() ||
+  ARC_MAINNET_TX_HUB
 ) as Address;
 
 export const PLAY_PURPOSE = keccak256(toBytes("PLAY"));

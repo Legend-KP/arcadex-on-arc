@@ -10,9 +10,13 @@ import {
   ARC_USDC_TOKEN_ADDRESS,
 } from "@/lib/spark-refill";
 
-/** Set NEXT_PUBLIC_SCORE_SUBMIT_CONTRACT after deploying to Arc — no Celo default. */
+/** Arc mainnet ScoreSubmit — fallback if NEXT_PUBLIC_* missing at build time. */
+const ARC_MAINNET_SCORE_SUBMIT =
+  "0x393A322846Cb9b95E9aFC6521e727Cf6C8af8501" as const;
+
 export const SCORE_SUBMIT_CONTRACT_ADDRESS = (
-  process.env.NEXT_PUBLIC_SCORE_SUBMIT_CONTRACT?.trim() || ""
+  process.env.NEXT_PUBLIC_SCORE_SUBMIT_CONTRACT?.trim() ||
+  ARC_MAINNET_SCORE_SUBMIT
 ) as Address;
 
 export type ScoreSubmitPaymentToken = "USDC";

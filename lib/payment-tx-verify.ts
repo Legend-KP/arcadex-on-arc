@@ -281,8 +281,8 @@ function verifyEntryPaidEvent(options: {
 
 /**
  * Verify a wallet payment to a SparkRefill-style contract.
- * Accepts a direct ERC-20 transfer into the contract (current flow) or a
- * legacy payWith* tx that emitted EntryPaid.
+ * Prefer EntryPaid from payWithUSDC(); also accept a direct ERC-20 Transfer
+ * (older client builds) for backwards compatibility.
  */
 export async function verifyEntryPaidPaymentTx(options: {
   walletAddress: string;
@@ -325,6 +325,19 @@ export async function verifyEntryPaidPaymentTx(options: {
     "fee"
   );
 
+  // Primary: payWithUSDC() EntryPaid
+  const entryPaid = verifyEntryPaidEvent({
+    receipt,
+    expectedPlayer,
+    contractAddress,
+    abi,
+    usdtAddress,
+    usdcAddress,
+    fee,
+  });
+  if (entryPaid) return entryPaid;
+
+  // Legacy: bare USDC.transfer into the contract
   const direct = verifyDirectTransferPayment({
     receipt,
     expectedPlayer,
@@ -334,17 +347,6 @@ export async function verifyEntryPaidPaymentTx(options: {
     fee,
   });
   if (direct) return direct;
-
-  const legacy = verifyEntryPaidEvent({
-    receipt,
-    expectedPlayer,
-    contractAddress,
-    abi,
-    usdtAddress,
-    usdcAddress,
-    fee,
-  });
-  if (legacy) return legacy;
 
   throw new Error(`Payment to ${contractLabel} not found in transaction.`);
 }

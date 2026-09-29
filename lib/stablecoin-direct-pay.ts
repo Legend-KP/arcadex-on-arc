@@ -1,7 +1,18 @@
+/**
+ * Stablecoin payments for SparkRefill / InfiniteSpark / ScoreSubmit.
+ *
+ * Contract flow (matches Solidity):
+ *   1) USDC.approve(paymentContract, fee)   — skip if allowance already enough
+ *   2) paymentContract.payWithUSDC()        — pulls fee via transferFrom, emits EntryPaid
+ *
+ * value must always be 0x0 (receive/fallback reject native value).
+ */
+
 import {
   formatEther,
   formatUnits,
   getAddress,
+  maxUint256,
   type Abi,
   type Address,
   type Hash,
@@ -9,15 +20,17 @@ import {
 import {
   formatChainError,
   getArcNativeBalance,
+  getArcPublicClient,
   readArcContract,
   readArcContractValue,
   waitForArcTransactionReceipt,
 } from "@/lib/arc-public-client";
 import {
+  ARC_DEFAULT_CALL_GAS,
   ARC_DEFAULT_TRANSFER_GAS,
   ARC_MIN_NATIVE_GAS_WEI,
   prepareArcWalletAccount,
-  sendArcUsdcTransfer,
+  sendArcContractWrite,
 } from "@/lib/arc-send";
 import {
   ARC_USDC_TOKEN_ADDRESS,
@@ -25,6 +38,32 @@ import {
   STABLECOIN_DECIMALS,
   type SparkRefillPaymentToken,
 } from "@/lib/spark-refill";
+
+const ERC20_ALLOWANCE_ABI = [
+  {
+    type: "function",
+    name: "allowance",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+] as const satisfies Abi;
+
+const ERC20_APPROVE_ABI = [
+  {
+    type: "function",
+    name: "approve",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+] as const satisfies Abi;
 
 async function readErc20Balance(
   token: Address,
@@ -36,6 +75,18 @@ async function readErc20Balance(
     functionName: "balanceOf",
     args: [account],
   });
+}
+
+async function readAllowance(
+  owner: Address,
+  spender: Address
+): Promise<bigint> {
+  return (await getArcPublicClient().readContract({
+    address: ARC_USDC_TOKEN_ADDRESS,
+    abi: ERC20_ALLOWANCE_ABI,
+    functionName: "allowance",
+    args: [owner, spender],
+  })) as bigint;
 }
 
 /**
@@ -118,8 +169,8 @@ async function runStage<T>(stage: string, fn: () => Promise<T>): Promise<T> {
 }
 
 /**
- * One wallet confirmation: ERC-20 USDC `transfer(fee)` into the payment contract.
- * Uses the shared Arc send path (Rainbow, MetaMask, Coinbase, …).
+ * Approve USDC (if needed) then call payWithUSDC() on the payment contract.
+ * Returns the payWithUSDC tx hash (EntryPaid) for server verification.
  */
 export async function purchaseStablecoinFeeOnChain(options: {
   contractAddress: Address;
@@ -129,9 +180,15 @@ export async function purchaseStablecoinFeeOnChain(options: {
 }): Promise<{ txHash: Hash; token: SparkRefillPaymentToken }> {
   const { contractAddress, contractAbi, connectError, failError } = options;
 
-  if (!ARC_USDC_TOKEN_ADDRESS) {
-    throw new Error(connectError);
+  if (!ARC_USDC_TOKEN_ADDRESS || !contractAddress) {
+    throw new Error(
+      connectError ||
+        "Payment contract is not configured. Set NEXT_PUBLIC_*_CONTRACT build vars."
+    );
   }
+
+  const paymentContract = getAddress(contractAddress);
+  const usdc = getAddress(ARC_USDC_TOKEN_ADDRESS);
 
   let account: Address;
   try {
@@ -142,7 +199,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
 
   const paused = await runStage("paused", () =>
     readArcContractValue<boolean>({
-      address: contractAddress,
+      address: paymentContract,
       abi: contractAbi,
       functionName: "paused",
     })
@@ -153,7 +210,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
 
   const fee = await runStage("fee", () =>
     readArcContract({
-      address: contractAddress,
+      address: paymentContract,
       abi: contractAbi,
       functionName: "fee",
     })
@@ -163,19 +220,48 @@ export async function purchaseStablecoinFeeOnChain(options: {
     requireBalancesForPayment(account, fee)
   );
 
+  // 1) Approve if allowance < fee (one wallet confirmation when needed).
+  const allowance = await runStage("allowance", () =>
+    readAllowance(account, paymentContract)
+  );
+
+  if (allowance < fee) {
+    try {
+      const { txHash: approveHash } = await sendArcContractWrite({
+        address: usdc,
+        abi: ERC20_APPROVE_ABI,
+        functionName: "approve",
+        // Approve max so future refills skip this step; fee-exact also works.
+        args: [paymentContract, maxUint256],
+        gas: ARC_DEFAULT_TRANSFER_GAS,
+      });
+      const approveReceipt = await waitForArcTransactionReceipt(approveHash);
+      if (approveReceipt.status !== "success") {
+        throw new Error("USDC approve failed on-chain.");
+      }
+    } catch (error) {
+      throw toFriendlyError(
+        error,
+        `${failError} Approve USDC for the payment contract, then try again.`
+      );
+    }
+  }
+
+  // 2) payWithUSDC() — transferFrom + EntryPaid. value must be 0.
   let payHash: Hash;
   try {
-    const sent = await sendArcUsdcTransfer({
-      token: getAddress(ARC_USDC_TOKEN_ADDRESS),
-      to: getAddress(contractAddress),
-      amount: fee,
-      gas: ARC_DEFAULT_TRANSFER_GAS,
+    const sent = await sendArcContractWrite({
+      address: paymentContract,
+      abi: contractAbi,
+      functionName: "payWithUSDC",
+      args: [],
+      gas: ARC_DEFAULT_CALL_GAS,
     });
     payHash = sent.txHash;
   } catch (error) {
     throw toFriendlyError(
       error,
-      `${failError} Switch your wallet to Arc Mainnet (5042) and try again.`
+      `${failError} Switch to Arc Mainnet (5042) and try again.`
     );
   }
 
@@ -185,7 +271,7 @@ export async function purchaseStablecoinFeeOnChain(options: {
 
   if (payReceipt.status !== "success") {
     throw new Error(
-      `${failError} The transfer was rejected on-chain. Keep a little extra native USDC for gas.`
+      `${failError} payWithUSDC was rejected on-chain. Keep native USDC for gas and ERC-20 USDC for the fee.`
     );
   }
 

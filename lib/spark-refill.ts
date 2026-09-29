@@ -1,15 +1,21 @@
 import type { Address } from "viem";
 import { ARC_USDC_ADDRESS } from "@/lib/arc-chain";
 
-export const SPARK_REFILL_CONTRACT_ADDRESS =
-  (process.env.NEXT_PUBLIC_SPARK_REFILL_CONTRACT ??
-    "") as Address;
+/** Arc mainnet SparkRefill — fallback if NEXT_PUBLIC_* missing at build time. */
+const ARC_MAINNET_SPARK_REFILL =
+  "0x07FBF1bC8DF68C057fD4d7D1D7F57fADee6A5f0E" as const;
+
+export const SPARK_REFILL_CONTRACT_ADDRESS = (
+  process.env.NEXT_PUBLIC_SPARK_REFILL_CONTRACT?.trim() ||
+  ARC_MAINNET_SPARK_REFILL
+) as Address;
 
 /** Arc mainnet ERC-20 USDC (6 decimals). */
 export const ARC_USDC_TOKEN_ADDRESS = ARC_USDC_ADDRESS as Address;
 
-/** @deprecated Use ARC_USDC_TOKEN_ADDRESS — no USDT on Arc. */
-export const CELO_USDT_ADDRESS = "0x0000000000000000000000000000000000000000" as Address;
+/** @deprecated Zeroed — MiniPay/Celo USDT is not used on Arc. */
+export const CELO_USDT_ADDRESS =
+  "0x0000000000000000000000000000000000000000" as Address;
 
 /** @deprecated Use ARC_USDC_TOKEN_ADDRESS */
 export const CELO_USDC_ADDRESS = ARC_USDC_TOKEN_ADDRESS;

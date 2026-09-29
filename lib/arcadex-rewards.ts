@@ -1,9 +1,13 @@
 import type { Address, Hex } from "viem";
 import { keccak256, toBytes } from "viem";
 
-/** ArcadeXRewards on Arc mainnet — set after deploy. Daily check-in is app sign-in. */
+/** ArcadeXRewards on Arc mainnet — fallback if NEXT_PUBLIC_* missing at build time. */
+const ARC_MAINNET_REWARDS =
+  "0x10E69E455BCA4606B8820d342d3e52c01C17049c" as const;
+
 export const ARCADEX_REWARDS_CONTRACT_ADDRESS = (
-  process.env.NEXT_PUBLIC_ARCADEX_REWARDS_CONTRACT?.trim() || ""
+  process.env.NEXT_PUBLIC_ARCADEX_REWARDS_CONTRACT?.trim() ||
+  ARC_MAINNET_REWARDS
 ) as Address;
 
 export const DEFAULT_STREAK_CAMPAIGN_ID = Number(

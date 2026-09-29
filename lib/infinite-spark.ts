@@ -2,9 +2,13 @@ import type { Address } from "viem";
 
 export const INFINITE_SPARK_DURATION_MS = 24 * 60 * 60 * 1000;
 
-/** Set NEXT_PUBLIC_INFINITE_SPARK_CONTRACT after deploying to Arc — no Celo default. */
+/** Arc mainnet InfiniteSpark — fallback if NEXT_PUBLIC_* missing at build time. */
+const ARC_MAINNET_INFINITE_SPARK =
+  "0x54CfCe40CaeF51b986DAf9abbc0C6dea0fA40a35" as const;
+
 export const INFINITE_SPARK_CONTRACT_ADDRESS = (
-  process.env.NEXT_PUBLIC_INFINITE_SPARK_CONTRACT?.trim() || ""
+  process.env.NEXT_PUBLIC_INFINITE_SPARK_CONTRACT?.trim() ||
+  ARC_MAINNET_INFINITE_SPARK
 ) as Address;
 
 export {

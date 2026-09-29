@@ -44,9 +44,21 @@ export const ARC_TX_MAP = {
     client: "signInOnChain(playPurpose)",
     confirmApi: "/api/sparks/spend",
   },
+  sparkRefill: {
+    contract: "USDC approve → SparkRefill.payWithUSDC",
+    functionName: "approve + payWithUSDC",
+    client: "purchaseSparkRefillOnChain",
+    confirmApi: "/api/sparks/refill",
+  },
+  infiniteSpark: {
+    contract: "USDC approve → InfiniteSpark.payWithUSDC",
+    functionName: "approve + payWithUSDC",
+    client: "purchaseInfiniteSparkOnChain",
+    confirmApi: "/api/sparks/infinite",
+  },
   scoreSubmitContest: {
-    contract: "USDC → ScoreSubmit",
-    functionName: "transfer",
+    contract: "USDC approve → ScoreSubmit.payWithUSDC",
+    functionName: "approve + payWithUSDC",
     client: "purchaseScoreSubmitOnChain",
     confirmApi: "/api/games/[id]/leaderboard/submit",
   },
@@ -56,18 +68,6 @@ export const ARC_TX_MAP = {
     purpose: "SCORE_SUBMIT:{gameId}",
     client: "signInOnChain(scoreSubmitPurpose)",
     confirmApi: "/api/games/[id]/leaderboard/submit",
-  },
-  sparkRefill: {
-    contract: "USDC → SparkRefill",
-    functionName: "transfer",
-    client: "purchaseSparkRefillOnChain",
-    confirmApi: "/api/sparks/refill",
-  },
-  infiniteSpark: {
-    contract: "USDC → InfiniteSpark",
-    functionName: "transfer",
-    client: "purchaseInfiniteSparkOnChain",
-    confirmApi: "/api/sparks/infinite",
   },
 } as const;
 
