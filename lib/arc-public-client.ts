@@ -311,7 +311,7 @@ export function formatChainError(error: unknown): string {
     lower.includes("invalid params") ||
     (lower.includes("invalid parameters") && lower.includes("rpc"))
   ) {
-    return "Wallet rejected the transaction params. Make sure you are on Arc and try again.";
+    return "Open MetaMask → switch network to Arc (chain 5042), then try again.";
   }
   if (
     lower.includes("http request failed") ||

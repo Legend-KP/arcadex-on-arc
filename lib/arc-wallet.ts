@@ -11,6 +11,7 @@ import {
 
 export type ArcWalletId =
   | "metamask"
+  | "rainbow"
   | "coinbase"
   | "rabby"
   | "okx"
@@ -29,6 +30,7 @@ export interface ArcWalletOption {
 
 export type InjectedProvider = EIP1193Provider & {
   isMetaMask?: boolean;
+  isRainbow?: boolean;
   isCoinbaseWallet?: boolean;
   isRabby?: boolean;
   isOkxWallet?: boolean;
@@ -42,6 +44,7 @@ declare global {
     ethereum?: InjectedProvider;
     okxwallet?: InjectedProvider;
     coinbaseWalletExtension?: InjectedProvider;
+    rainbow?: InjectedProvider;
   }
 }
 
@@ -51,7 +54,18 @@ export const ARC_WALLET_OPTIONS: ArcWalletOption[] = [
     name: "MetaMask",
     description: "Browser extension · Arc via custom network",
     installUrl: "https://metamask.io/download/",
-    match: (p) => Boolean(p.isMetaMask) && !p.isRabby && !p.isBraveWallet,
+    match: (p) =>
+      Boolean(p.isMetaMask) &&
+      !p.isRainbow &&
+      !p.isRabby &&
+      !p.isBraveWallet,
+  },
+  {
+    id: "rainbow",
+    name: "Rainbow",
+    description: "Ethereum wallet · supports Arc",
+    installUrl: "https://rainbow.me/download",
+    match: (p) => Boolean(p.isRainbow),
   },
   {
     id: "coinbase",
@@ -110,6 +124,7 @@ function listAllProviders(): InjectedProvider[] {
   }
   push(window.okxwallet ?? null);
   push(window.coinbaseWalletExtension ?? null);
+  push(window.rainbow ?? null);
 
   return out;
 }
@@ -172,7 +187,7 @@ export function setSelectedWalletId(id: ArcWalletId | null): void {
   localStorage.setItem(SELECTED_PROVIDER_KEY, id);
 }
 
-/** Preferred injected provider: last user choice, then MetaMask → Rabby → Coinbase → first. */
+/** Preferred injected provider: last user choice, then common Arc wallets. */
 export function getPreferredInjectedProvider(): InjectedProvider | null {
   const selected = getSelectedWalletId();
   if (selected) {
@@ -184,7 +199,10 @@ export function getPreferredInjectedProvider(): InjectedProvider | null {
   if (providers.length === 0) return null;
 
   return (
-    providers.find((p) => p.isMetaMask && !p.isRabby && !p.isBraveWallet) ||
+    providers.find(
+      (p) => p.isMetaMask && !p.isRainbow && !p.isRabby && !p.isBraveWallet
+    ) ||
+    providers.find((p) => p.isRainbow) ||
     providers.find((p) => p.isRabby) ||
     providers.find((p) => p.isCoinbaseWallet) ||
     providers.find((p) => p.isOkxWallet || p.isOKExWallet) ||

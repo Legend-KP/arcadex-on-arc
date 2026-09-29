@@ -46,7 +46,7 @@ export async function prepareWalletForArcTx(): Promise<void> {
   const provider = getInjectedProvider();
   if (!provider) {
     throw new Error(
-      "Connect a wallet (MetaMask, Coinbase, Rabby, OKX, or Brave) on Arc to continue."
+      "Connect a wallet (MetaMask, Rainbow, Coinbase, Rabby, OKX, or Brave) on Arc to continue."
     );
   }
   await ensureArcChain(provider);

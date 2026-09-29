@@ -21,6 +21,7 @@ interface WalletConnectModalProps {
 
 const PRIMARY_IDS: ArcWalletId[] = [
   "metamask",
+  "rainbow",
   "coinbase",
   "rabby",
   "okx",

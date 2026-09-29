@@ -121,7 +121,7 @@ export async function retryResolveWallet(): Promise<string | null> {
 
 function walletInitErrorMessage(): string {
   if (!hasInjectedWallet()) {
-    return "Connect a wallet (MetaMask, Coinbase, Rabby, OKX, or Brave) on Arc to continue.";
+    return "Connect a wallet (MetaMask, Rainbow, Coinbase, Rabby, OKX, or Brave) on Arc to continue.";
   }
   return "Could not connect to your wallet. Unlock it and try again.";
 }
