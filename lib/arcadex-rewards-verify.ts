@@ -15,6 +15,7 @@ import {
 } from "@/lib/arcadex-rewards";
 import {
   getArcPublicClient,
+  readArcContractValue,
   waitForArcTransactionReceipt,
 } from "@/lib/arc-public-client";
 
@@ -186,16 +187,43 @@ export async function readStreakProgress(
 ) {
   assertConfigured();
   const player = getAddress(walletAddress);
-  const publicClient = getArcPublicClient();
+
+  // Use retry/failover — public Arc RPCs rate-limit eth_call heavily.
+  type ProgressTuple = readonly [
+    bigint | number,
+    bigint | number,
+    boolean,
+    boolean,
+    boolean,
+    boolean,
+    boolean,
+  ];
+  type CampaignTuple = readonly [
+    boolean,
+    boolean,
+    boolean,
+    bigint | number,
+    bigint | number,
+    bigint | number,
+    bigint | number,
+    bigint | number,
+    bigint | number,
+    bigint | number,
+    Address,
+    bigint,
+    Hex,
+    boolean,
+    bigint,
+  ];
 
   const [progress, campaign] = await Promise.all([
-    publicClient.readContract({
+    readArcContractValue<ProgressTuple>({
       address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
       abi: ARCADEX_REWARDS_ABI,
       functionName: "getProgress",
       args: [player, BigInt(campaignId)],
     }),
-    publicClient.readContract({
+    readArcContractValue<CampaignTuple>({
       address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
       abi: ARCADEX_REWARDS_ABI,
       functionName: "getCampaign",
@@ -358,8 +386,7 @@ export async function readSpinNonce(
 ): Promise<bigint> {
   assertConfigured();
   const player = getAddress(walletAddress);
-  const publicClient = getArcPublicClient();
-  return publicClient.readContract({
+  return readArcContractValue<bigint>({
     address: ARCADEX_REWARDS_CONTRACT_ADDRESS,
     abi: ARCADEX_REWARDS_ABI,
     functionName: "spinNonce",

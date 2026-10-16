@@ -43,6 +43,18 @@ function hostOf(url: string): string {
   }
 }
 
+/** Public Arc RPCs often return HTTP 200 with a rate-limit error in the JSON-RPC body. */
+function isRateLimitedRpcBody(text: string): boolean {
+  const lower = text.toLowerCase();
+  return (
+    lower.includes("rate limit") ||
+    lower.includes("rate_limit") ||
+    lower.includes("too many requests") ||
+    lower.includes("request exceeds defined limit") ||
+    lower.includes("exceeds defined limit")
+  );
+}
+
 async function forwardToUpstream(
   bodyText: string
 ): Promise<
@@ -53,6 +65,7 @@ async function forwardToUpstream(
   const headers = getArcUpstreamRpcHeaders();
   const statusHints: number[] = [];
   let lastError = "No Arc RPC upstream configured";
+  let sawRateLimit = false;
 
   for (const url of urls) {
     try {
@@ -66,6 +79,13 @@ async function forwardToUpstream(
       const text = await res.text();
       statusHints.push(res.status);
 
+      // HTTP 200 + JSON-RPC rate limit — treat as failover (common on public Arc RPCs).
+      if (res.ok && isRateLimitedRpcBody(text)) {
+        sawRateLimit = true;
+        lastError = `Upstream ${hostOf(url)} rate limited`;
+        continue;
+      }
+
       if (res.ok) {
         return { ok: true, text, upstream: hostOf(url) };
       }
@@ -77,6 +97,9 @@ async function forwardToUpstream(
         res.status === 429 ||
         res.status >= 500
       ) {
+        if (res.status === 429 || isRateLimitedRpcBody(text)) {
+          sawRateLimit = true;
+        }
         lastError = `Upstream ${hostOf(url)} returned ${res.status}`;
         continue;
       }
@@ -90,6 +113,10 @@ async function forwardToUpstream(
     } catch (err) {
       lastError = err instanceof Error ? err.message : String(err);
     }
+  }
+
+  if (sawRateLimit && !statusHints.includes(429)) {
+    statusHints.push(429);
   }
 
   return { ok: false, error: lastError, statusHints };

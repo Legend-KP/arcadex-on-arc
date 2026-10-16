@@ -47,16 +47,33 @@ export function getArcUpstreamRpcUrls(): string[] {
     .map((s) => s.trim())
     .filter(Boolean);
 
+  // Prefer dedicated ARC_RPC_URL, then fallbacks, then public endpoints.
+  // Put the shared default last among publics — it rate-limits aggressively.
+  const publicOrdered = [
+    ...ARC_PUBLIC_RPC_URLS.filter((u) => u !== ARC_DEFAULT_RPC_URL),
+    ARC_DEFAULT_RPC_URL,
+  ];
+
   const urls = [
     ...(primary ? [primary] : []),
     ...extras,
-    ...ARC_PUBLIC_RPC_URLS,
+    ...publicOrdered,
   ];
 
   const deduped = [...new Set(urls.filter(Boolean))];
   for (const url of deduped) {
     assertMainnetRpcUrl(url);
   }
+
+  // If primary is only the shared public default, prefer alternate publics first.
+  if (
+    deduped.length > 1 &&
+    deduped[0] === ARC_DEFAULT_RPC_URL &&
+    !process.env.ARC_RPC_URL?.trim()
+  ) {
+    return [...deduped.slice(1), deduped[0]!];
+  }
+
   return deduped;
 }
 

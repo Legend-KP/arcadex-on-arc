@@ -133,6 +133,9 @@ function isTransientRpcError(error: unknown): boolean {
     message.includes("network") ||
     message.includes("429") ||
     message.includes("rate limit") ||
+    message.includes("request exceeds defined limit") ||
+    message.includes("exceeds defined limit") ||
+    message.includes("too many requests") ||
     message.includes("503") ||
     message.includes("502") ||
     message.includes("http request failed") ||

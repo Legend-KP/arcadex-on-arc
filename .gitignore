@@ -63,3 +63,4 @@ unity-coinsort-fix/
 unity-linelink-fix/
 unity-bridge/*.pages
 *.pages
+.env.example
