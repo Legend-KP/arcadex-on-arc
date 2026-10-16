@@ -609,6 +609,7 @@ export default function PlayerProfileProvider({
         walletAddress={walletAddress}
         status={streakStatus}
         onComplete={handleCheckInComplete}
+        onChangeWallet={changeWallet}
       />
       <DailyShuffleModal
         open={shuffleVisible}

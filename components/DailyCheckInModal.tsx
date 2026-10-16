@@ -20,6 +20,12 @@ interface DailyCheckInModalProps {
     milestone: boolean;
     infiniteSparkGranted: boolean;
   }) => void;
+  onChangeWallet?: () => void;
+}
+
+function shortWallet(address: string): string {
+  if (address.length < 12) return address;
+  return `${address.slice(0, 6)}…${address.slice(-4)}`;
 }
 
 function FlameIcon({ className }: { className?: string }) {
@@ -119,6 +125,7 @@ export default function DailyCheckInModal({
   walletAddress,
   status,
   onComplete,
+  onChangeWallet,
 }: DailyCheckInModalProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -362,6 +369,23 @@ export default function DailyCheckInModal({
           </span>
           <span className="daily-checkin-btn-sub">No cost transaction</span>
         </button>
+
+        {onChangeWallet && walletAddress ? (
+          <button
+            type="button"
+            className="daily-checkin-change-wallet"
+            disabled={loading || Boolean(success)}
+            onClick={() => {
+              playTouchSfx();
+              onChangeWallet();
+            }}
+          >
+            Change wallet
+            <span className="daily-checkin-change-wallet-addr">
+              {shortWallet(walletAddress)}
+            </span>
+          </button>
+        ) : null}
       </div>
     </div>
     {success ? (
