@@ -49,11 +49,17 @@ contract-deploy/node_modules/
 
 # typescript
 *.tsbuildinfo
-.env.example
-*.example
-unity-bridge/DEVELOPER_GUIDE.md
-*.md
-/unity-bridge
-unity-coinsort-fix/ArcadeXBridge.cs
-unity-coinsort-fix/ArcadeXBridge.jslib
-unity-coinsort-fix/GameProgressionManager.cs
+
+# local agent / IDE noise (keep repo judge-friendly)
+.agents/
+.cursor/
+skills-lock.json
+
+# Internal notes (Celo-era / ops scratch) — not for public judge review
+docs/
+
+# Unity bridge sources are intended to be shared; ignore only local fix scratchpads
+unity-coinsort-fix/
+unity-linelink-fix/
+unity-bridge/*.pages
+*.pages
