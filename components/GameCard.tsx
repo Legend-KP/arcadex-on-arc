@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   gameAssetCandidates,
   gameFallbackCandidates,
+  gameVideoSources,
   preloadGameMenuAssets,
 } from "@/lib/game-assets";
 import { formatPlayCount } from "@/lib/format-play-count";
@@ -43,10 +44,20 @@ export default function GameCard({
     () => gameFallbackCandidates(game),
     [game]
   );
+  const videoSources = useMemo(() => gameVideoSources(game), [game]);
 
   const [thumbIdx, setThumbIdx] = useState(0);
   const [logoIdx, setLogoIdx] = useState(0);
   const [fallbackIdx, setFallbackIdx] = useState(0);
+  const [inView, setInView] = useState(false);
+  const [videoFailed, setVideoFailed] = useState(false);
+  const [reducedMotion, setReducedMotion] = useState(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return false;
+    return window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  });
+
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement>(null);
 
   const thumbSrc = thumbCandidates[thumbIdx];
   const logoSrc = logoCandidates[logoIdx];
@@ -54,6 +65,45 @@ export default function GameCard({
 
   const imgLoading = priority ? "eager" : "lazy";
   const imgPriority = priority ? ("high" as const) : ("auto" as const);
+
+  const canPlayVideo =
+    isLive && Boolean(videoSources) && !videoFailed && !reducedMotion;
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.matchMedia) return;
+    const mq = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReducedMotion(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
+  useEffect(() => {
+    if (!canPlayVideo) {
+      setInView(false);
+      return;
+    }
+    const el = wrapRef.current;
+    if (!el) return;
+
+    const io = new IntersectionObserver(
+      ([entry]) => setInView(Boolean(entry?.isIntersecting)),
+      { rootMargin: "100px", threshold: 0.15 }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [canPlayVideo]);
+
+  useEffect(() => {
+    if (!canPlayVideo || !inView) return;
+    const video = videoRef.current;
+    if (!video) return;
+
+    void video.play().catch(() => setVideoFailed(true));
+    return () => {
+      video.pause();
+    };
+  }, [canPlayVideo, inView]);
 
   const warmMenu = () => {
     if (isLive) preloadGameMenuAssets(game, { includeTutorial: true });
@@ -96,10 +146,28 @@ export default function GameCard({
     <div className="thumb-placeholder" aria-hidden />
   );
 
+  const showVideo = canPlayVideo && inView && videoSources;
+
   const cardBody = (
     <>
-      <div className="thumb-wrap">
+      <div className="thumb-wrap" ref={wrapRef}>
         {thumbContent}
+        {showVideo && (
+          <video
+            ref={videoRef}
+            className="thumb-video"
+            muted
+            playsInline
+            loop
+            preload={priority ? "metadata" : "none"}
+            poster={thumbSrc || undefined}
+            onError={() => setVideoFailed(true)}
+            aria-hidden
+          >
+            <source src={videoSources.webm} type="video/webm" />
+            <source src={videoSources.mp4} type="video/mp4" />
+          </video>
+        )}
         {isNewArrival && (
           <span className="game-card-new-badge" aria-label="New arrival">
             NEW ARRIVAL

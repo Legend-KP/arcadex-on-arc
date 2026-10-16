@@ -57,6 +57,72 @@ export function slugifyGameName(name: string): string {
 }
 
 /**
+ * Games with bundled preview loops under public/thumbnails/.
+ * Only these get video sources — avoids 404 spam for image-only titles.
+ */
+const LOCAL_PREVIEW_VIDEO_FOLDERS = new Set([
+  "dot-connect",
+  "jelly-jumble",
+  "fruit-game",
+  "hungry-hole",
+  "coin-sort",
+  "block-blast",
+  "orbit-flow",
+  "line-link",
+  "basedrop",
+  "free-fall",
+  "burger-game",
+  "goe",
+  "infinite-spiral",
+]);
+
+/** Display-name / id aliases → thumbnail video folder slug. */
+const PREVIEW_VIDEO_ALIASES: Record<string, string> = {
+  "fruit-swipe": "fruit-game",
+  fruit: "fruit-game",
+  "restaurant-empire": "burger-game",
+  burger: "burger-game",
+  hungry: "hungry-hole",
+  "base-drop": "basedrop",
+  jelly: "jelly-jumble",
+  jellyjumble: "jelly-jumble",
+  coinsort: "coin-sort",
+  linelink: "line-link",
+  freefall: "free-fall",
+  "infinite-spirals": "infinite-spiral",
+};
+
+/** Resolve allowlisted preview-video folder, or null for image-only cards. */
+export function resolvePreviewVideoFolder(game: Game): string | null {
+  const nameSlug = slugifyGameName(game.name);
+  const id = game.id.trim().toLowerCase();
+  const candidates = [
+    PREVIEW_VIDEO_ALIASES[nameSlug],
+    nameSlug,
+    !isFirestoreAutoId(id) ? PREVIEW_VIDEO_ALIASES[id] : undefined,
+    !isFirestoreAutoId(id) ? id : undefined,
+  ].filter((v): v is string => Boolean(v));
+
+  for (const slug of candidates) {
+    if (LOCAL_PREVIEW_VIDEO_FOLDERS.has(slug)) return slug;
+  }
+
+  return null;
+}
+
+/** Static preview video URLs for a game, or null when not allowlisted. */
+export function gameVideoSources(
+  game: Game
+): { webm: string; mp4: string } | null {
+  const folder = resolvePreviewVideoFolder(game);
+  if (!folder) return null;
+  return {
+    webm: `/thumbnails/${folder}.webm`,
+    mp4: `/thumbnails/${folder}.mp4`,
+  };
+}
+
+/**
  * Accept only real image paths/URLs. Rejects legacy emoji values (e.g. "🎮")
  * that were previously stored in Firestore as fallbackImage / emoji.
  */
@@ -155,12 +221,16 @@ export function gameAssetCandidates(
 
   const nameSlug = slugifyGameName(game.name);
   if (nameSlug) {
+    const aliased = PREVIEW_VIDEO_ALIASES[nameSlug];
+    if (aliased) pushLocalGameAssets(push, aliased, kind);
     pushLocalGameAssets(push, nameSlug, kind);
     push(ROOT_GAME_LOGOS[nameSlug]);
   }
 
   const id = game.id.trim().toLowerCase();
   if (id && !isFirestoreAutoId(id)) {
+    const aliased = PREVIEW_VIDEO_ALIASES[id];
+    if (aliased) pushLocalGameAssets(push, aliased, kind);
     pushLocalGameAssets(push, id, kind);
     push(ROOT_GAME_LOGOS[id]);
   }
